@@ -40,10 +40,8 @@ actually being optimal — taking into account:
 One effective way to do this is the UCB formula:
 
 ```
-A_t = argmax  [ Q_t(a) + c * sqrt( ln(t) / N_a(a) ) ]
-         a
-
-              |_________|   |________________________|
+A_t = argmax  [  Q_t(a)  + c * sqrt( ln(t) / N_a(a) ) ]
+         a     |________| |_________________________|
                estimated          uncertainty
                  value              bonus
 ```
@@ -57,10 +55,3 @@ Where:
 > **Note:** If `N_t(a) = 0`, then `a` is considered a maximizing action.
 
 ---
-
-## Assignment
-
-Repeat the 10-armed testbed experiment with:
-
-- `c = 1, 2, 3, 4, 5, ...`
-- `epsilon = 0.1, 0.001, ...`
