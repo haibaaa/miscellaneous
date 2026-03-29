@@ -1,0 +1,50 @@
+2310110258 Samarth Patel
+QUESTION 1
+ans --> SECURESECURE
+QUESTION 2
+(i) problem 1
+-------------------------------------
+when availability is compromised (like a system going down or being inaccessible), integrity can suffer because we lose the ability to verify or maintain data correctness. for example, if a backup system becomes unavailable during a ransomware attack, we can't restore files to their correct state, meaning data integrity is compromised. 
+A confidentiality breach can lead to integrity problems because once attackers access sensitive information, they can use that knowledge to make convincing, malicious modifications. For example, if someone steals credentials (confidentiality breach), they can then log in and alter records, inject false data, or manipulate transactions (integrity breach). The attacker now has the information needed to make changes that appear legitimate.
+
+(ii) problem 2
+-------------------------------------
+threat-to-service mapping:
+
+1. disclosure → confidentiality
+   - disclosure means unauthorized access to information
+   - confidentiality service directly protects against this through encryption, access controls, and authentication
+   - example: preventing data leaks or eavesdropping
+
+2. disruption → availability
+   - disruption involves interrupting or preventing normal system operations
+   - availability service ensures systems remain accessible and functional
+   - example: DDoS protection, redundant systems, backup power
+
+3. deception → integrity
+   - deception means introducing false data or misleading information into a system
+   - integrity service ensures data accuracy and prevents unauthorized modification
+   - example: digital signatures, checksums, input validation to detect falsified data
+
+4. usurpation → confidentiality
+   - usurpation involves unauthorized control of system resources
+   - primarily integrity (taking control to modify behavior), but can affect availability (taking systems offline)
+   - example: privilege escalation attacks where attackers gain admin rights
+
+
+(iii) problem 3
+vulnerability: a weakness or flaw in a system, process, or physical environment that could be exploited. it is a state of the system.
+threat: a potential cause of an unwanted incident. it represents a possible danger that could exploit a vulnerability. threats can be intentional, accidental, or natural.
+attack: the deliberate action taken to exploit a vulnerability. this is the execution phase where the threat becomes a reality.
+
+(iv) problem 4
+example: a ransomware attack on a corporate network
+
+assume a company fell for a phishing attack
+
+delayed detection
+ what could happen --> the malware runs silently for hours. it moves across the network, finds the main file server, and begins encrypting years of company data and backups.
+effect: the entire business stops. the company faces huge loss.
+
+timely detection 
+what would happen --> the employee suspects that they their system has been compromised so they remove their machine from the network and inform the it department possibly limiting the malware spread and drastically limiting the damage.
