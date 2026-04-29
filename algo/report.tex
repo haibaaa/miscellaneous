@@ -1,0 +1,494 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Packages ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{abstract}
+\usepackage{parskip}
+\usepackage{listings}
+
+% --- Listings style ---
+\lstdefinestyle{pseudocode}{
+  language=Python,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\bfseries\color{accentblue},
+  commentstyle=\itshape\color{gray},
+  stringstyle=\color{darkgray},
+  backgroundcolor=\color{lightgray},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{accentblue!40},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=4,
+  xleftmargin=1.5em,
+  xrightmargin=0.5em,
+  aboveskip=0.8em,
+  belowskip=0.8em,
+  captionpos=b,
+  morekeywords={True,False,None,not,and,or,in,is,return,while,for,if,def,each},
+}
+
+% --- Color theme ---
+\definecolor{accentblue}{RGB}{30,90,160}
+\definecolor{lightgray}{RGB}{245,245,245}
+\definecolor{darkgray}{RGB}{60,60,60}
+
+% --- Hyperref setup ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentblue,
+  urlcolor=accentblue,
+  citecolor=accentblue,
+  pdftitle={SlickBench: Comparative Analysis of Hash Table Probing and Sliding Gap Layouts},
+  pdfauthor={SlickBench Benchmarking Framework},
+}
+
+% --- Section formatting ---
+\titleformat{\section}{\large\bfseries\color{accentblue}}{{\thesection}}{1em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{darkgray}}{{\thesubsection}}{1em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\color{darkgray}}{{\thesubsubsection}}{1em}{}
+
+% --- Abstract ---
+\renewcommand{\abstractnamefont}{\bfseries\color{accentblue}}
+\renewcommand{\abstracttextfont}{\small}
+
+% --- Caption style ---
+\captionsetup{font=small, labelfont={bf,color=accentblue}, margin=0.5cm}
+
+% --- Document ---
+\begin{document}
+
+% ============================================================
+%  TITLE PAGE
+% ============================================================
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Huge\bfseries\color{accentblue} SlickBench\par}
+  \vspace{0.4cm}
+  {\large\bfseries Comparative Analysis of Hash Table Probing\\and Sliding Gap Layouts\par}
+  \vspace{1.5cm}
+  \rule{\linewidth}{0.5pt}
+  \vspace{0.5cm}
+  {\normalsize SlickBench Benchmarking Framework\par}
+  {\normalsize Rust Core~\textbar~Python Orchestration~\textbar~Matplotlib Visualisation\par}
+  \vspace{0.5cm}
+  \rule{\linewidth}{0.5pt}
+  \vfill
+  {\small\itshape A hybrid benchmarking study of open-addressing, cuckoo, and sliding-gap hash table designs\\across synthetic and real-world datasets.\par}
+  \vspace{2cm}
+\end{titlepage}
+
+% ============================================================
+%  TABLE OF CONTENTS
+% ============================================================
+\tableofcontents
+\newpage
+
+% ============================================================
+%  ABSTRACT
+% ============================================================
+\begin{abstract}
+This report presents a comprehensive benchmarking study of diverse hash table implementations, ranging from traditional open-addressing schemes (Linear and Quadratic Probing) to more complex structures like Cuckoo Hashing and Slick Hashing. We evaluate these structures across various synthetic and real-world datasets, measuring both time performance (nanoseconds per operation) and space efficiency (bytes per element). Our findings highlight the significant performance of the standard library implementation while illustrating the trade-offs in memory overhead and probe locality for the specialised Slick Hash structure.
+\end{abstract}
+
+\vspace{1em}
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+\subsection{Problem Definition}
+
+Hash tables are fundamental data structures requiring a robust strategy for collision resolution. The choice of probing strategy or overflow management significantly impacts cache locality, average-case latency, and memory utilisation.
+
+\subsection{Motivation}
+
+The Slick Hash implementation introduces a ``sliding-gap'' layout intended to optimise for specific data distributions and range queries. Understanding how this layout compares to established techniques (like Cuckoo Hashing or standard open addressing) in a general benchmarking context is critical for selecting the right tool for high-performance systems.
+
+\subsection{Hypothesis}
+
+We hypothesise that while Slick Hashing may offer specialised benefits in controlled environments, traditional open-addressing schemes with high load factors will generally exhibit lower overhead per element, whereas the standard library \texttt{HashSet} will provide the best overall time performance due to mature optimisations.
+
+\subsection{Related Work}
+
+\begin{itemize}
+  \item \textbf{Linear/Quadratic Probing}: Classical open-addressing techniques explored by Knuth~\cite{knuth1998}.
+  \item \textbf{Cuckoo Hashing}: Introduced by Pagh and Rodler~\cite{pagh2001}, offering $O(1)$ worst-case lookup time through multi-choice placement.
+  \item \textbf{Slick Hashing}: A modern sliding-gap approach that manages blocks and thresholds to handle saturation.
+\end{itemize}
+
+% ============================================================
+\section{System Overview}
+% ============================================================
+
+SlickBench is a hybrid benchmarking framework comprised of a high-performance Rust core and a Python-based orchestration and visualisation layer. The Rust core ensures monomorphised, low-overhead execution of the benchmark matrix, while the Python layer provides robust statistical analysis and plot generation.
+
+% ============================================================
+\section{Methodology}
+% ============================================================
+
+\subsection{Benchmark Design}
+
+Each benchmark run involves a fresh instantiation of a hash table with a specified initial capacity hint. Workloads are repeated multiple times, with the minimum execution time recorded to eliminate transient noise from the host operating system.
+
+\subsection{Datasets}
+
+\begin{itemize}
+  \item \textbf{Uniform}: Randomly distributed \texttt{u64} keys.
+  \item \textbf{Sequential}: Monotonically increasing \texttt{u64} keys, testing spatial locality.
+  \item \textbf{Zipf}: Power-law distribution, simulating uneven access patterns.
+  \item \textbf{Norvig}: Real-world string keys from the Norvig word list.
+  \item \textbf{Wikipedia}: Real-world string titles from Wikipedia dumps.
+\end{itemize}
+
+\subsection{Workloads}
+
+\begin{itemize}
+  \item \textbf{Bulk}: Massive insertion phase followed by a lookup phase.
+  \item \textbf{Mixed}: 20\% insertion, 80\% search ratio.
+  \item \textbf{Read-Heavy}: 5\% insertion, 95\% search ratio.
+\end{itemize}
+
+\subsection{Metrics}
+
+\begin{itemize}
+  \item \textbf{Time}: Measured as average nanoseconds per operation (\texttt{ns/op}).
+  \item \textbf{Space}:
+    \begin{itemize}
+      \item \texttt{capacity}: Total allocated slots.
+      \item \texttt{bytes\_estimate}: Total estimated memory footprint including main and overflow tables.
+      \item \texttt{bytes\_per\_element}: Normalised memory cost per stored key.
+    \end{itemize}
+\end{itemize}
+
+% ============================================================
+\section{Implementation Details}
+% ============================================================
+
+\subsection{Hash Table Interface}
+
+All implementations adhere to a unified \texttt{HashTable<K>} trait, ensuring that the benchmark remains generic over the underlying storage strategy.
+
+\subsection{Linear Probing}
+
+Baseline open-addressing scheme. Every key lives in one flat array; on collision the probe
+advances one slot at a time until an empty slot or the target key is found.
+
+\begin{lstlisting}[style=pseudocode, caption={Linear Probing -- insert}]
+def insert(key):
+    if load_factor_exceeds_limit():
+        grow_and_rehash()
+
+    start = hash1(key) % capacity
+    i = start
+    while True:
+        if slots[i] is empty:
+            slots[i] = key
+            return
+        if slots[i] == key:
+            return
+        i = (i + 1) % capacity
+\end{lstlisting}
+
+\begin{lstlisting}[style=pseudocode, caption={Linear Probing -- find}]
+def find(key):
+    start = hash1(key) % capacity
+    i = start
+    while True:
+        if slots[i] is empty:
+            return False
+        if slots[i] == key:
+            return True
+        i = (i + 1) % capacity
+        if i == start:
+            return False
+\end{lstlisting}
+
+\subsection{Quadratic Probing}
+
+Uses the same flat array as linear probing but widens the probe distance quadratically
+($i^2$) to reduce primary clustering.
+
+\begin{lstlisting}[style=pseudocode, caption={Quadratic Probing -- insert}]
+def insert(key):
+    if load_factor_exceeds_limit():
+        grow_and_rehash()
+
+    start = hash1(key) % capacity
+    step = 1
+    i = start
+    while True:
+        if slots[i] is empty:
+            slots[i] = key
+            return
+        if slots[i] == key:
+            return
+        i = (start + step * step) % capacity
+        step += 1
+\end{lstlisting}
+
+\begin{lstlisting}[style=pseudocode, caption={Quadratic Probing -- find}]
+def find(key):
+    start = hash1(key) % capacity
+    step = 1
+    i = start
+    while True:
+        if slots[i] is empty:
+            return False
+        if slots[i] == key:
+            return True
+        i = (start + step * step) % capacity
+        step += 1
+        if step > capacity:
+            return False
+\end{lstlisting}
+
+\subsection{Cuckoo Hashing}
+
+Maintains two independent tables and two hash functions. A key may reside in exactly one
+location in table~1 or one location in table~2. Insertions may evict (``kick'') existing
+keys; if the kick chain exceeds \texttt{MAX\_KICKS} the tables are rebuilt.
+
+\begin{lstlisting}[style=pseudocode, caption={Cuckoo Hashing -- try\_insert (single kick round)}]
+def try_insert(key):
+    for _ in range(MAX_KICKS):
+        i1 = hash1(key) % capacity
+        if table1[i1] is empty:
+            table1[i1] = key
+            return True
+        key, table1[i1] = table1[i1], key  # evict
+
+        i2 = hash2(key) % capacity
+        if table2[i2] is empty:
+            table2[i2] = key
+            return True
+        key, table2[i2] = table2[i2], key  # evict
+
+    return False  # kick chain too long
+\end{lstlisting}
+
+\begin{lstlisting}[style=pseudocode, caption={Cuckoo Hashing -- insert and find}]
+def insert(key):
+    if find(key):
+        return
+    while not try_insert(key):
+        grow_tables()
+        reinsert_every_existing_key()
+
+def find(key):
+    return (
+        table1[hash1(key) % capacity] == key
+        or table2[hash2(key) % capacity] == key
+    )
+\end{lstlisting}
+
+\subsection{Slick Hashing}
+
+Slick Hashing partitions the main table into fixed-size blocks. Each block tracks metadata
+(offset, gap size, threshold). Inserts attempt to stay within the block; nearby gaps are
+slid when possible; lower-priority keys are ejected to a ``backyard'' overflow structure
+when a block becomes too constrained.
+
+\begin{lstlisting}[style=pseudocode, caption={Slick Hashing -- insert}]
+def insert(key):
+    block = hash1(key) mapped into block_index
+
+    if threshold_hash(key) < block.threshold:
+        backyard_insert(key)
+        return
+
+    if key already exists in block_range(block):
+        return
+
+    if block_has_no_immediately_usable_space(block):
+        t_prime = 1 + minimum_threshold_hash_among_block_keys_and_new_key()
+        block.threshold = t_prime
+
+        for each key_in_block:
+            if threshold_hash(key_in_block) < t_prime:
+                backyard_insert(key_in_block)
+                remove_key_from_block(key_in_block)
+
+        if threshold_hash(key) < t_prime:
+            backyard_insert(key)
+            return
+
+    append_key_to_end_of_block(key)
+    shrink_block_gap(block)
+\end{lstlisting}
+
+\begin{lstlisting}[style=pseudocode, caption={Slick Hashing -- find}]
+def find(key):
+    block = hash1(key) mapped into block_index
+
+    if threshold_hash(key) < block.threshold:
+        return backyard_contains(key)
+
+    return key in block_range(block)
+\end{lstlisting}
+
+\subsection{Engineering Decisions}
+
+\begin{itemize}
+  \item \textbf{Deterministic Hashing}: All tables use a fixed-seed \texttt{AHasher} to ensure fair comparisons regardless of the implementation's internal hashing choices.
+  \item \textbf{Backyard Implementation}: In this suite, the Slick backyard uses an open-addressed overflow table to remain consistent with the project's memory tracking rules.
+\end{itemize}
+
+% ============================================================
+\section{Experimental Setup}
+% ============================================================
+
+The benchmarks were executed on a Linux system using the Rust 1.75+ toolchain (release profile). Plots were generated using Matplotlib within a Nix-reproducible environment to ensure consistent rendering and dependency management. The dataset size was fixed at 200,000 for numeric keys and 50,000 for string keys to maintain manageable execution times while stressing the tables significantly.
+
+% ============================================================
+\section{Results}
+% ============================================================
+
+\subsection{Time Performance}
+
+The following figures show insert and find latencies (ns/op) across all three workload types.
+
+% --- Bulk time ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{bulk.png}
+  \caption{Bulk workload: Insert and Find latency (ns/op) across datasets and hash table implementations.}
+  \label{fig:time-bulk}
+\end{figure}
+
+% --- Mixed time ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{mixed.png}
+  \caption{Mixed workload (20\% insert / 80\% search): Insert and Find latency (ns/op).}
+  \label{fig:time-mixed}
+\end{figure}
+
+% --- Read-Heavy time ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{read_heavy.png}
+  \caption{Read-Heavy workload (5\% insert / 95\% search): Insert and Find latency (ns/op).}
+  \label{fig:time-readheavy}
+\end{figure}
+
+\subsubsection{Insert Performance}
+
+Standard \texttt{std\_set} exhibits the lowest insertion latency across all workloads, typically ranging from 7\,ns to 15\,ns per operation. Linear and Quadratic Probing follow, with Slick and Cuckoo Hashing showing higher latency (70\,ns--110\,ns) due to the complexity of gap-sliding and kick sequences, respectively.
+
+\subsubsection{Lookup Performance}
+
+Lookup performance is highly competitive. Cuckoo Hashing demonstrates its $O(1)$ lookup promise with values often below 15\,ns per operation. Slick Hashing's find performance is around 25\,ns--30\,ns, slightly slower than basic open addressing due to the dual lookup in the main block and the backyard.
+
+\subsubsection{Workload Comparison}
+
+Under mixed and read-heavy workloads, the performance gap between implementations narrows as the overhead of complex insertions is amortised over frequent lookups.
+
+\subsection{Space Efficiency}
+
+The following figures compare bytes-per-element across all workloads and datasets.
+
+% --- Space: Bulk ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\linewidth]{space_bulk.png}
+  \caption{Bulk workload: Space efficiency (bytes per element).}
+  \label{fig:space-bulk}
+\end{figure}
+
+% --- Space: Mixed ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\linewidth]{space_mixed.png}
+  \caption{Mixed workload: Space efficiency (bytes per element).}
+  \label{fig:space-mixed}
+\end{figure}
+
+% --- Space: Read-Heavy ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\linewidth]{space_read_heavy.png}
+  \caption{Read-Heavy workload: Space efficiency (bytes per element).}
+  \label{fig:space-readheavy}
+\end{figure}
+
+\subsubsection{Key Observations}
+
+\begin{itemize}
+  \item \textbf{Linear/Quadratic Probing}: Generally use around 20 bytes per element at high load factors (0.75).
+  \item \textbf{Slick}: Occupies a similar footprint (approx.\ 21 bytes per element) but shows higher block-level metadata overhead.
+  \item \textbf{std\_set}: Shows high variability in space efficiency due to its internal growth strategy, often achieving as low as 9 bytes per element in bulk scenarios.
+  \item \textbf{Norvig dataset}: All implementations show markedly higher bytes-per-element costs, owing to the variable-length string keys and associated heap allocations.
+  \item \textbf{Zipf dataset}: Achieves the best space efficiency across all implementations due to the skewed key distribution allowing higher effective load factors.
+\end{itemize}
+
+% ============================================================
+\section{Analysis and Discussion}
+% ============================================================
+
+The results confirm the time-space trade-off inherent in hash table design. While Slick Hashing's sliding-gap layout aims to manage block saturation locally, the overhead of managing block metadata and the ``backyard'' overflow table results in slightly higher latency and memory usage compared to global open addressing on uniform distributions. However, Slick's behaviour remains stable even as the main table approaches physical capacity, thanks to its threshold-dumping mechanism.
+
+A notable pattern across Figures~\ref{fig:time-bulk}--\ref{fig:time-readheavy} is that \textbf{Cuckoo Hashing} suffers the highest insertion cost---particularly for Norvig string keys---due to repeated kick sequences triggered by hash collisions on string inputs. Despite this, its find latency remains competitive.
+
+The \texttt{std\_set} consistently achieves the lowest insertion latency, benefiting from decades of compiler and runtime optimisation. Its space efficiency advantage (as seen in Figures~\ref{fig:space-bulk}--\ref{fig:space-readheavy}) is most visible in bulk and uniform scenarios, where its internal growth factor aligns well with the inserted key count.
+
+% ============================================================
+\section{Limitations}
+% ============================================================
+
+Memory estimation is based on a static calculation of capacity and entry sizes, which may not capture the full runtime overhead of the allocator or internal bitmask metadata used by the standard library. Additionally, the current benchmark suite does not instrument hardware performance counters, so cache-miss behaviour must be inferred indirectly from latency numbers.
+
+% ============================================================
+\section{Conclusion}
+% ============================================================
+
+Standard library implementations remain the benchmark for general-purpose use, offering exceptional performance. Specialised structures like Slick Hashing provide interesting architectural alternatives, though their benefits may be more pronounced in specific scenarios (e.g., hardware-assisted search or range-query optimisations) not fully captured by this synthetic benchmark.
+
+% ============================================================
+\section{Future Work}
+% ============================================================
+
+\begin{itemize}
+  \item Integration of hardware performance counters (cache misses, branch mispredictions).
+  \item Evaluation under extreme load factors ($>90\%$).
+  \item Testing with non-uniform distributions tailored to Slick's block-sliding strengths.
+  \item Extension to concurrent workloads with fine-grained locking or lock-free variants.
+\end{itemize}
+
+% ============================================================
+%  REFERENCES
+% ============================================================
+\begin{thebibliography}{9}
+
+\bibitem{pagh2001}
+Pagh, R., \& Rodler, F.\,F. (2001).
+\textit{Cuckoo Hashing}.
+In \textit{Proceedings of the 9th Annual European Symposium on Algorithms (ESA 2001)}, Lecture Notes in Computer Science, vol.\,2161, pp.\,121--133. Springer, Berlin, Heidelberg.
+
+\bibitem{knuth1998}
+Knuth, D.\,E. (1998).
+\textit{The Art of Computer Programming, Volume 3: Sorting and Searching} (2nd ed.).
+Addison-Wesley.
+
+\bibitem{slick}
+Slick Hash reference implementation and architectural specification.
+Internal project documentation.
+
+\end{thebibliography}
+
+\end{document}
