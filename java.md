@@ -1,4 +1,4 @@
-# Java & Software Architecture: Backend Viva Study Guide
+# Java & Software Architecture
 
 ---
 
@@ -343,8 +343,8 @@ Stack (per thread)         Heap (shared)
 +-----------------+     | Old Gen             |
 | frame: process()|     |   [long-lived obj]  |
 +-----------------+     | Metaspace           |
-                         |   [class metadata] |
-                         +---------------------+
+                        |   [class metadata]  |
+                        +---------------------+
 ```
 
 ### The Garbage Collector
@@ -1201,12 +1201,6 @@ Concurrent counter          AtomicInteger
 Managed threads             ExecutorService
 Auto-close resources        try-with-resources
 ```
-
----
-
-> **Good luck with your viva.**
-> Focus on *why* each feature exists — not just *what* it does.
-> Examiners value understanding of the problem a feature solves.
 
 ---
 

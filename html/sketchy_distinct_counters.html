@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counting Distinct Elements — FM & LogLog</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0d0f;
+    --surface: #131519;
+    --surface2: #1a1d23;
+    --surface3: #21252e;
+    --gold: #e8c56d;
+    --gold-dim: #9c8148;
+    --cyan: #5ed3c8;
+    --red: #e05252;
+    --green: #5ecf8a;
+    --purple: #a78bfa;
+    --text: #d4d8e2;
+    --text-dim: #7a8090;
+    --border: #2a2f3a;
+    --mono: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', 'Consolas', monospace;
+    --serif: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', 'Consolas', monospace;
+    --sans: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', 'Consolas', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5rem 6vw 4rem;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 80% 30%, rgba(232,197,109,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 10% 80%, rgba(94,211,200,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.1s forwards;
+  }
+
+  .hero h1 {
+    font-family: var(--mono);
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+    max-width: 20ch;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.2s forwards;
+  }
+
+  .hero h1 em {
+    color: var(--gold);
+    font-style: italic;
+  }
+
+  .hero-sub {
+    margin-top: 1.5rem;
+    max-width: 60ch;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    font-weight: 300;
+    font-family: var(--mono);
+    opacity: 0;
+    animation: fadeUp 0.7s 0.35s forwards;
+  }
+
+  .hero-chips {
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+    margin-top: 2.5rem;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.5s forwards;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 5px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: var(--surface);
+  }
+
+  .chip.gold { border-color: var(--gold-dim); color: var(--gold); background: rgba(232,197,109,0.06); }
+  .chip.cyan { border-color: #3a8f8a; color: var(--cyan); background: rgba(94,211,200,0.06); }
+
+  /* LAYOUT */
+  .container { max-width: 1000px; margin: 0 auto; padding: 0 5vw; }
+
+  section { padding: 5rem 5vw; border-bottom: 1px solid var(--border); }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .section-label::after {
+    content: '';
+    height: 1px;
+    flex: 1;
+    max-width: 60px;
+    background: var(--gold-dim);
+    opacity: 0.4;
+  }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: clamp(1.4rem, 2.8vw, 2rem);
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 1.2rem;
+  }
+
+  h3 {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--gold);
+    margin: 2rem 0 0.5rem;
+    letter-spacing: 0.02em;
+  }
+
+  p { color: var(--text-dim); margin-bottom: 1rem; font-family: var(--mono); font-weight: 300; font-size: 13.5px; }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* MATH DISPLAY */
+  .math-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold-dim);
+    padding: 1.2rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--cyan);
+    margin: 1.2rem 0;
+    border-radius: 0 6px 6px 0;
+    overflow-x: auto;
+    line-height: 1.9;
+  }
+
+  .math-block .comment { color: var(--text-dim); font-style: italic; }
+
+  /* ALGORITHM BOX */
+  .algo-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.8rem;
+    margin: 1.5rem 0;
+  }
+
+  .algo-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .algo-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .algo-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(94,211,200,0.1);
+    color: var(--cyan);
+    border: 1px solid rgba(94,211,200,0.2);
+  }
+
+  .algo-step {
+    display: flex;
+    gap: 1rem;
+    margin: 0.5rem 0;
+    font-size: 13.5px;
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    color: var(--gold-dim);
+    font-size: 11px;
+    padding-top: 2px;
+    flex-shrink: 0;
+    width: 20px;
+  }
+
+  .step-text { color: var(--text-dim); font-weight: 300; font-family: var(--mono); font-size: 13px; }
+  .step-text code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--cyan);
+    background: rgba(94,211,200,0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* INTERACTIVE DEMOS */
+  .demo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 2rem 0;
+  }
+
+  .demo-header {
+    background: var(--surface2);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .demo-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .demo-body { padding: 1.5rem; }
+
+  .input-row {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 4px; }
+
+  label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  input[type="text"], input[type="number"], select {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus, select:focus {
+    border-color: var(--gold-dim);
+  }
+
+  input[type="text"] { min-width: 260px; }
+  input[type="number"] { width: 80px; }
+
+  button {
+    background: var(--gold);
+    color: #0c0d0f;
+    border: none;
+    border-radius: 5px;
+    padding: 9px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  button:hover { opacity: 0.85; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button.secondary {
+    background: var(--surface3);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  /* TRACE TABLE */
+  .trace-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-top: 1rem;
+  }
+
+  .trace-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--gold-dim);
+    letter-spacing: 0.1em;
+    font-weight: 400;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .trace-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(42,47,58,0.5);
+    color: var(--text-dim);
+    vertical-align: top;
+  }
+
+  .trace-table tr:last-child td { border-bottom: none; }
+  .trace-table tr.highlight td { background: rgba(232,197,109,0.05); }
+  .trace-table tr.highlight td:first-child { border-left: 2px solid var(--gold-dim); }
+
+  .val-green { color: var(--green); }
+  .val-red { color: var(--red); }
+  .val-cyan { color: var(--cyan); }
+  .val-gold { color: var(--gold); }
+  .val-purple { color: var(--purple); }
+
+  /* BITMAP DISPLAY */
+  .bitmap-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 1rem 0;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .bit-cell {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.2s;
+    gap: 2px;
+  }
+
+  .bit-cell .idx { font-size: 8px; color: var(--text-dim); }
+  .bit-cell .val { font-size: 13px; font-weight: 500; }
+
+  .bit-cell.is-one { background: rgba(94,207,138,0.12); border-color: rgba(94,207,138,0.3); }
+  .bit-cell.is-one .val { color: var(--green); }
+  .bit-cell.is-zero { background: rgba(224,82,82,0.08); border-color: rgba(224,82,82,0.2); }
+  .bit-cell.is-zero .val { color: var(--red); }
+  .bit-cell.is-r { background: rgba(232,197,109,0.15); border-color: var(--gold); }
+  .bit-cell.is-r .val { color: var(--gold); }
+
+  /* RESULT DISPLAY */
+  .result-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    margin-top: 1rem;
+    display: flex;
+    gap: 3rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .result-item { display: flex; flex-direction: column; gap: 4px; }
+  .result-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+  .result-value { font-family: var(--mono); font-size: 1.6rem; font-weight: 500; color: var(--gold); }
+  .result-value.actual { color: var(--green); }
+  .result-value.error { font-size: 1rem; }
+  .result-value.good { color: var(--green); }
+  .result-value.bad { color: var(--red); }
+
+  /* LOGLOG BUCKETS */
+  .bucket-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 6px;
+    margin: 1rem 0;
+  }
+
+  .bucket-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 6px;
+    text-align: center;
+    font-family: var(--mono);
+    transition: all 0.3s;
+  }
+
+  .bucket-cell .b-idx { font-size: 9px; color: var(--text-dim); margin-bottom: 4px; }
+  .bucket-cell .b-val { font-size: 1rem; font-weight: 500; color: var(--cyan); }
+  .bucket-cell.active { border-color: rgba(94,211,200,0.5); background: rgba(94,211,200,0.06); }
+  .bucket-cell.top30 { border-color: rgba(224,82,82,0.4); background: rgba(224,82,82,0.06); }
+  .bucket-cell.top30 .b-val { color: var(--red); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 8px 18px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transform: none;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+  }
+
+  .tab-btn:hover { color: var(--text); transform: none; }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* COMPARISON */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .compare-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem;
+  }
+
+  .compare-card h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .compare-card p { font-family: var(--mono); font-size: 12px; margin: 0; }
+
+  .compare-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(42,47,58,0.4); font-size: 12px; }
+  .compare-row:last-child { border-bottom: none; }
+  .compare-key { color: var(--text-dim); font-family: var(--mono); font-size: 11px; }
+  .compare-val { color: var(--text); font-family: var(--mono); font-size: 11px; }
+
+  /* INFO CALLOUT */
+  .callout {
+    background: rgba(94,211,200,0.05);
+    border: 1px solid rgba(94,211,200,0.15);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+    font-size: 12.5px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+  }
+
+  .callout.warn {
+    background: rgba(232,197,109,0.05);
+    border-color: rgba(232,197,109,0.15);
+  }
+
+  .callout strong { color: var(--cyan); font-weight: 500; }
+  .callout.warn strong { color: var(--gold); }
+
+  /* ERROR CHART */
+  #error-chart {
+    width: 100%;
+    height: 180px;
+    margin-top: 1rem;
+    position: relative;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .loading { animation: pulse 1s infinite; }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(12,13,15,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5vw;
+    z-index: 100;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  nav a {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 14px 16px;
+    transition: color 0.15s;
+    white-space: nowrap;
+  }
+
+  nav a:hover { color: var(--gold); }
+
+  /* LOG STREAM */
+  .stream-log {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem;
+    max-height: 160px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-top: 1rem;
+  }
+
+  .log-line { padding: 1px 0; }
+  .log-line .ts { color: var(--border); margin-right: 0.5rem; }
+  .log-line .key { color: var(--gold-dim); }
+  .log-line .val { color: var(--cyan); }
+
+  /* RESPONSIVE */
+  @media (max-width: 680px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    input[type="text"] { min-width: 100%; }
+    .input-row { flex-direction: column; }
+  }
+
+  /* SECTION DECORATION */
+  .section-bg-fm { position: relative; }
+  .section-bg-fm::after {
+    content: 'FM';
+    position: absolute;
+    top: 3rem;
+    right: 5vw;
+    font-family: var(--mono);
+    font-size: 10rem;
+    font-weight: 700;
+    color: rgba(232,197,109,0.03);
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  .section-bg-ll::after {
+    content: 'LL';
+    position: absolute;
+    top: 3rem;
+    right: 5vw;
+    font-family: var(--mono);
+    font-size: 10rem;
+    font-weight: 700;
+    color: rgba(94,211,200,0.03);
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  .section-bg-ll { position: relative; }
+
+  /* SEED DISPLAY */
+  .seed-row { display: flex; gap: 1rem; margin-bottom: 0.5rem; align-items: center; }
+  .seed-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); width: 80px; flex-shrink: 0; }
+  .seed-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .seed-fill { height: 100%; background: var(--gold); border-radius: 3px; transition: width 0.4s; }
+  .seed-val { font-family: var(--mono); font-size: 11px; color: var(--gold); width: 50px; text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">CSD 482 · Algorithms in the Real World · Interactive Study Guide</div>
+  <h1>Counting <em>Distinct</em> Elements</h1>
+  <p class="hero-sub">A deep dive into Flajolet-Martin and LogLog sketching algorithms — with interactive walkthroughs, edge-case exploration, and step-by-step traces.</p>
+  <div class="hero-chips">
+    <span class="chip gold">Flajolet-Martin</span>
+    <span class="chip gold">Improved FM</span>
+    <span class="chip gold">Idealized FM</span>
+    <span class="chip cyan">LogLog</span>
+    <span class="chip cyan">SuperLogLog</span>
+    <span class="chip cyan">HyperLogLog</span>
+    <span class="chip">Streaming Algorithms</span>
+    <span class="chip">Probabilistic Counting</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#intro">Intro</a>
+  <a href="#basic-fm">Basic FM</a>
+  <a href="#improved-fm">Improved FM</a>
+  <a href="#idealized-fm">Idealized FM</a>
+  <a href="#nonfm">Non-Ideal FM</a>
+  <a href="#loglog">LogLog</a>
+  <a href="#superloglog">SuperLogLog</a>
+  <a href="#compare">Compare</a>
+</nav>
+
+<!-- INTRODUCTION -->
+<section id="intro">
+  <div class="section-label">Background</div>
+  <h2>The Distinct Counting Problem</h2>
+  <p>Given a multi-set of <strong>n integers</strong> from universe U = {0, 1, …, U−1}, we want to report the count of <em>distinct</em> elements in a single pass using sublinear space. This is the core problem behind analytics on massive data streams — counting unique visitors, unique IP addresses, unique queries, etc.</p>
+
+  <h3>Why Exact Counting is Hard</h3>
+  <p>An exact solution requires at least <strong>⌈log₂ C(U,σ)⌉ > σ bits</strong> by a reduction from the membership problem. This means any single-pass exact algorithm needs Ω(σ) space — so we turn to <em>approximation</em>.</p>
+
+  <div class="callout warn">
+    <strong>Impossibility:</strong> No single-pass algorithm can solve distinct counting in o(σ) space exactly. Proof: if such an algorithm existed, we could solve membership (set membership queries) in sublinear space — a contradiction since there are C(U,σ) possible sets.
+  </div>
+
+  <div class="compare-grid">
+    <div class="compare-card">
+      <h4>Exact Approaches</h4>
+      <div class="compare-row"><span class="compare-key">Sorting</span><span class="compare-val">O(n log n) time, O(n log n) bits</span></div>
+      <div class="compare-row"><span class="compare-key">Balanced BST</span><span class="compare-val">O(n log σ) time, O(σ log U) bits</span></div>
+      <div class="compare-row"><span class="compare-key">Bit Array</span><span class="compare-val">O(n) time, U bits space</span></div>
+      <div class="compare-row"><span class="compare-key">Hash Table</span><span class="compare-val">O(n) expected, O(σ log U) bits</span></div>
+    </div>
+    <div class="compare-card">
+      <h4>Sketch Approaches</h4>
+      <div class="compare-row"><span class="compare-key">Basic FM</span><span class="compare-val">O(log U) bits, high variance</span></div>
+      <div class="compare-row"><span class="compare-key">Improved FM</span><span class="compare-val">r hash functions, 1/rε² failure</span></div>
+      <div class="compare-row"><span class="compare-key">LogLog</span><span class="compare-val">O(m log log U) bits, err ≈ 1.30/√m</span></div>
+      <div class="compare-row"><span class="compare-key">HyperLogLog</span><span class="compare-val">O(m log log U) bits, err ≈ 1.04/√m</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- BASIC FM -->
+<section id="basic-fm" class="section-bg-fm">
+  <div class="section-label">Section 01</div>
+  <h2>Basic Flajolet-Martin Sketch</h2>
+
+  <p>The core intuition: for <strong>σ uniformly random numbers in (0,1]</strong>, the minimum value is approximately 1/(σ+1). So we can estimate σ ≈ 1/X − 1, where X is the minimum observed hash value.</p>
+
+  <div class="algo-box">
+    <div class="algo-box-header">
+      <span class="algo-title">Basic FM Sketch</span>
+      <span class="algo-badge">Idealized</span>
+    </div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Let <code>h : U → (0,1]</code> be a uniform random hash function</span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">Compute <code>X = min over all i: h(A[i])</code></span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Output <code>σ̂ = 1/X − 1</code> as the estimate</span></div>
+  </div>
+
+  <h3>Why Does This Work? (Intuition)</h3>
+  <p>If we have σ distinct elements, each hashed uniformly to (0,1], they divide the interval into σ+1 roughly equal parts. The minimum of σ uniform [0,1] samples has expected value <strong>1/(σ+1)</strong>. Inverting gives us σ.</p>
+
+  <div class="math-block">
+E[X] = ∫₀¹ Pr[X > z] dz
+     = ∫₀¹ Pr[h(A[i]) > z, ∀i] dz
+     = ∫₀¹ (1−z)^σ dz
+     = 1/(σ+1)     <span class="comment">← correct in expectation!</span>
+
+Var(X) = σ / [(σ+1)²(σ+2)]  &lt;  1/(σ+1)²  <span class="comment">← std dev ≈ mean (too high!)</span>
+  </div>
+
+  <div class="callout warn">
+    <strong>Problem:</strong> The standard deviation is approximately equal to the mean — zero is just one standard deviation away! A single unlucky hash value can wildly skew the estimate.
+  </div>
+
+  <!-- INTERACTIVE: Basic FM -->
+  <div class="demo-card">
+    <div class="demo-header">
+      <span class="demo-title">Interactive — Basic FM Step-by-Step</span>
+    </div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field">
+          <label>Stream (comma-separated integers)</label>
+          <input type="text" id="fm-input" value="3,1,4,1,5,9,2,6,5,3,5" placeholder="e.g. 1,2,3,1,2">
+        </div>
+        <div class="field">
+          <label>Hash Seed</label>
+          <input type="number" id="fm-seed" value="42" min="1" max="9999">
+        </div>
+        <div class="field" style="justify-content: flex-end;">
+          <button onclick="runBasicFM()">Run Trace</button>
+        </div>
+      </div>
+      <div id="fm-output"></div>
+    </div>
+  </div>
+</section>
+
+<!-- IMPROVED FM -->
+<section id="improved-fm">
+  <div class="section-label">Section 02</div>
+  <h2>Improved FM — Variance Reduction</h2>
+  <p>To reduce variance, we run <strong>r independent copies</strong> of Basic FM (each with its own hash function) and average the X values. By Chebyshev's inequality, the probability of being more than ε/(σ+1) away from the mean drops to 1/(rε²).</p>
+
+  <div class="algo-box">
+    <div class="algo-box-header">
+      <span class="algo-title">Improved FM Sketch</span>
+      <span class="algo-badge">r hash functions</span>
+    </div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Choose <code>r</code> independent hash functions <code>hⱼ : U → (0,1]</code></span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">For each j: compute <code>Xⱼ = min h_j(A[i])</code></span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Compute mean: <code>X̄ = (ΣXⱼ)/r</code></span></div>
+    <div class="algo-step"><span class="step-num">4.</span><span class="step-text">Output <code>σ̄ = 1/X̄ − 1</code></span></div>
+  </div>
+
+  <div class="math-block">
+E[X̄] = 1/(σ+1)      <span class="comment">← still correct in expectation</span>
+Var(X̄) &lt; 1/(r·(σ+1)²)   <span class="comment">← variance drops by factor r!</span>
+
+Pr[|X̄ − 1/(σ+1)| ≥ ε/(σ+1)] &lt; 1/(rε²)   <span class="comment">← Chebyshev bound</span>
+
+To get failure probability &lt; δ: set r = 1/(δε²)
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header">
+      <span class="demo-title">Interactive — Improved FM with Multiple Hash Functions</span>
+    </div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field">
+          <label>Stream</label>
+          <input type="text" id="ifm-input" value="5,2,8,3,5,7,2,8,1,5,9,2,6" placeholder="integers">
+        </div>
+        <div class="field">
+          <label>r (copies)</label>
+          <input type="number" id="ifm-r" value="5" min="1" max="20">
+        </div>
+        <div class="field" style="justify-content: flex-end;">
+          <button onclick="runImprovedFM()">Run</button>
+        </div>
+      </div>
+      <div id="ifm-output"></div>
+    </div>
+  </div>
+</section>
+
+<!-- IDEALIZED FM -->
+<section id="idealized-fm">
+  <div class="section-label">Section 03</div>
+  <h2>Idealized FM — Median of Means</h2>
+  <p>To get failure probability down to δ while using only O(log(1/δ)) instead of O(1/δ) hash functions, we use the classic <strong>median-of-means</strong> trick: create <em>s</em> copies of Improved FM and take the <em>median</em> estimate.</p>
+
+  <div class="algo-box">
+    <div class="algo-box-header">
+      <span class="algo-title">Idealized FM Sketch</span>
+      <span class="algo-badge">Median of Means</span>
+    </div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Create <code>s = ⌈48 ln(1/δ)⌉</code> copies of Improved FM, each with <code>r = ⌈3/ε²⌉</code></span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">Let <code>σ̄ⱼ = 1/X̄ⱼ − 1</code> be the j-th estimate</span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Output <code>σ* = median(σ̄₀, …, σ̄_{s-1})</code></span></div>
+  </div>
+
+  <div class="math-block">
+<span class="comment">Why does median help?</span>
+Each Improved FM instance succeeds (within ±ε·σ) with prob ≥ 2/3  (since rε² ≥ 3)
+If median is bad → at least s/2 instances are bad
+By Chernoff: Pr[≥ s/2 failures] ≤ e^{-E[Y]/32} ≤ e^{-s/48} ≤ δ  (since s ≥ 48 ln 1/δ)
+
+<span class="comment">Space:</span> s·r hash functions, each needing O(1) real numbers
+Total: O(ε⁻² log(1/δ)) real numbers
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header">
+      <span class="demo-title">Interactive — Idealized FM Parameters Calculator</span>
+    </div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field">
+          <label>Target error ε</label>
+          <input type="number" id="ideal-eps" value="0.1" min="0.01" max="0.5" step="0.01">
+        </div>
+        <div class="field">
+          <label>Target failure prob δ</label>
+          <input type="number" id="ideal-delta" value="0.05" min="0.001" max="0.5" step="0.001">
+        </div>
+        <div class="field" style="justify-content: flex-end;">
+          <button onclick="calcIdealFM()">Calculate</button>
+        </div>
+      </div>
+      <div id="ideal-output"></div>
+    </div>
+  </div>
+</section>
+
+<!-- NON-IDEALIZED FM -->
+<section id="nonfm" class="section-bg-fm">
+  <div class="section-label">Section 04</div>
+  <h2>Non-Idealized Flajolet-Martin Algorithm</h2>
+  <p>Real hash functions output integers, not real numbers. The FM algorithm uses a <strong>bitmap</strong> of length L to discretize. We track the trailing zero patterns of hash codes — this encodes roughly log₂(σ) information.</p>
+
+  <h3>Key Definitions</h3>
+  <p>For integer u, let <code>ρ(u)</code> = position of the <strong>least significant 1-bit</strong> (i.e., count of trailing zeros). For example: ρ(8) = ρ(1000₂) = 3, ρ(19) = ρ(10011₂) = 0, ρ(0) = L.</p>
+
+  <div class="math-block">
+Pr[ρ(h(u)) ≥ k]  =  Pr[bit k-1 of h(u) is 0 AND ... AND bit 0 is 0]
+                 =  (1/2)^k     <span class="comment">← for uniform hash</span>
+
+So MAP[k] stays 1 (untouched) with prob ≈ (1 − 1/2^{k+1})^σ
+MAP[k] gets set to 0 with prob ≈ 1 − (1 − 1/2^{k+1})^σ
+
+For k << log₂ σ:  MAP[k] ≈ 0  (almost certainly)
+For k >> log₂ σ:  MAP[k] ≈ 1  (almost certainly)
+Transition at k ≈ log₂(φ·σ), where φ = 0.77351
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-box-header">
+      <span class="algo-title">Non-Idealized FM Algorithm</span>
+      <span class="algo-badge">Practical</span>
+    </div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Initialize <strong>bitmap MAP[0..L-1]</strong> = all 1s</span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">For each element u: compute <code>index = ρ(h(u))</code>, set <code>MAP[index] = 0</code></span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Let <code>R = smallest index such that MAP[R] = 1</code></span></div>
+    <div class="algo-step"><span class="step-num">4.</span><span class="step-text">Output <code>σ̂ = 2^R / φ</code>, where <code>φ = 0.77351</code></span></div>
+  </div>
+
+  <div class="callout warn">
+    <strong>Edge Cases:</strong> If MAP is all 0s (R = L), the estimate overflows — σ may be larger than 2^L/φ. If MAP is all 1s (R = 0), estimate is 1/φ ≈ 1.3, even for empty streams.
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header">
+      <span class="demo-title">Interactive — Non-Idealized FM with Bitmap Visualization</span>
+    </div>
+    <div class="demo-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('nfm', 'manual')">Manual Input</button>
+        <button class="tab-btn" onclick="switchTab('nfm', 'auto')">Auto-Generate</button>
+        <button class="tab-btn" onclick="switchTab('nfm', 'edge')">Edge Cases</button>
+      </div>
+
+      <div id="nfm-tab-manual" class="tab-panel active">
+        <div class="input-row">
+          <div class="field">
+            <label>Stream</label>
+            <input type="text" id="nfm-input" value="3,1,4,1,5,9,2,6,5,3,5,8,7" placeholder="integers">
+          </div>
+          <div class="field">
+            <label>Bitmap Length L</label>
+            <input type="number" id="nfm-L" value="8" min="4" max="16">
+          </div>
+          <div class="field">
+            <label>Hash Seed</label>
+            <input type="number" id="nfm-seed" value="7" min="1" max="999">
+          </div>
+          <div class="field" style="justify-content: flex-end;">
+            <button onclick="runNonIdealFM('manual')">Trace</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="nfm-tab-auto" class="tab-panel">
+        <div class="input-row">
+          <div class="field">
+            <label>True Distinct Count (σ)</label>
+            <input type="number" id="nfm-sigma" value="10" min="1" max="1000">
+          </div>
+          <div class="field">
+            <label>Repetitions per element</label>
+            <input type="number" id="nfm-reps" value="3" min="1" max="10">
+          </div>
+          <div class="field">
+            <label>Hash Seed</label>
+            <input type="number" id="nfm-seed2" value="13" min="1" max="999">
+          </div>
+          <div class="field" style="justify-content: flex-end;">
+            <button onclick="runNonIdealFM('auto')">Generate & Trace</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="nfm-tab-edge" class="tab-panel">
+        <p style="margin-bottom:1rem; font-size:13px;">Explore edge cases that can fool the basic FM bitmap.</p>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+          <button class="secondary" onclick="runEdgeCase('empty')">Empty Stream</button>
+          <button class="secondary" onclick="runEdgeCase('single')">Single Element</button>
+          <button class="secondary" onclick="runEdgeCase('duplicates')">All Duplicates</button>
+          <button class="secondary" onclick="runEdgeCase('large')">Large Cardinality</button>
+          <button class="secondary" onclick="runEdgeCase('unlucky')">Unlucky Hash</button>
+        </div>
+      </div>
+
+      <div id="nfm-output" style="margin-top:1.5rem;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGLOG -->
+<section id="loglog" class="section-bg-ll">
+  <div class="section-label">Section 05</div>
+  <h2>LogLog Algorithm</h2>
+  <p>Instead of one big bitmap, LogLog uses <strong>m = 2^k buckets</strong>. The first k bits of each hash code select a bucket; the remaining bits record the longest run of leading zeros. The estimate averages (geometric mean) the per-bucket maximums.</p>
+
+  <h3>Key Insight: Bucketing = Multiple Independent Estimators</h3>
+  <p>By splitting the hash into bucket index (first k bits) and trailing-zero count (remaining bits), we effectively simulate <strong>m independent FM sketches</strong> — but with just a single hash function!</p>
+
+  <div class="math-block">
+For each element u with b-bit hash h(u) = y₀y₁...y_{b-1}:
+  bucket x = decimal(y₀...y_{k-1})       <span class="comment">← first k bits</span>
+  r = min index ≥ k such that y_r = 1    <span class="comment">← first 1-bit in remaining</span>
+  B[x] = max(B[x], r − k)               <span class="comment">← longest zero prefix seen</span>
+
+r̄ = (1/m) · Σ B[j]                      <span class="comment">← arithmetic mean of B values</span>
+σ̂ = α_m · m · 2^{r̄}                    <span class="comment">← geometric mean of 2^B[j]</span>
+
+Standard Error ≈ 1.30/√m
+To achieve ε error: choose m ≥ 1.69/ε²
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-box-header">
+      <span class="algo-title">LogLog Algorithm</span>
+      <span class="algo-badge">Durand-Flajolet 2003</span>
+    </div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Initialize array <code>B[0..m-1]</code> = all 0s, where <code>m = 2^k</code></span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">For each element u: compute b-bit hash <code>h(u)</code></span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Bucket index <code>x = first k bits of h(u)</code></span></div>
+    <div class="algo-step"><span class="step-num">4.</span><span class="step-text">Find <code>r = index of first 1-bit</code> in remaining (b−k) bits</span></div>
+    <div class="algo-step"><span class="step-num">5.</span><span class="step-text">Update: <code>B[x] = max(B[x], r − k)</code></span></div>
+    <div class="algo-step"><span class="step-num">6.</span><span class="step-text">Compute mean: <code>r̄ = (1/m) Σ B[j]</code></span></div>
+    <div class="algo-step"><span class="step-num">7.</span><span class="step-text">Output <code>σ̂ = α_m · m · 2^{r̄}</code></span></div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header">
+      <span class="demo-title">Interactive — LogLog Step-by-Step with Bucket Visualization</span>
+    </div>
+    <div class="demo-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('ll', 'trace')">Step Trace</button>
+        <button class="tab-btn" onclick="switchTab('ll', 'accuracy')">Accuracy vs m</button>
+      </div>
+
+      <div id="ll-tab-trace" class="tab-panel active">
+        <div class="input-row">
+          <div class="field">
+            <label>Stream</label>
+            <input type="text" id="ll-input" value="5,12,3,7,5,2,9,3,15,1,7,8,11" placeholder="integers">
+          </div>
+          <div class="field">
+            <label>k (m = 2^k buckets)</label>
+            <input type="number" id="ll-k" value="3" min="1" max="5">
+          </div>
+          <div class="field">
+            <label>b (hash bits)</label>
+            <input type="number" id="ll-b" value="8" min="6" max="16">
+          </div>
+          <div class="field">
+            <label>Hash Seed</label>
+            <input type="number" id="ll-seed" value="17" min="1" max="999">
+          </div>
+          <div class="field" style="justify-content: flex-end;">
+            <button onclick="runLogLog()">Trace</button>
+          </div>
+        </div>
+        <div id="ll-output"></div>
+      </div>
+
+      <div id="ll-tab-accuracy" class="tab-panel">
+        <p style="font-size:13px; margin-bottom:1rem;">See how standard error changes with m. Theoretical error ≈ 1.30/√m.</p>
+        <div class="input-row">
+          <div class="field">
+            <label>True σ</label>
+            <input type="number" id="ll-acc-sigma" value="1000" min="10" max="100000">
+          </div>
+          <div class="field" style="justify-content: flex-end;">
+            <button onclick="runLLAccuracy()">Simulate</button>
+          </div>
+        </div>
+        <div id="ll-acc-output"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPERLOGLOG -->
+<section id="superloglog">
+  <div class="section-label">Section 06</div>
+  <h2>SuperLogLog — Taming Outliers</h2>
+  <p>Large bucket values (outlier rᵢ's) can skew the arithmetic mean dramatically. SuperLogLog adds two rules to mitigate this:</p>
+
+  <div class="compare-grid">
+    <div class="compare-card">
+      <h4>Restriction Rule</h4>
+      <p style="font-size:12.5px; margin:0;">Only consider buckets where <code>B[j] ≤ ⌈3 + log₂(U/m)⌉</code>. This removes degenerate cases (e.g., hash collisions with all-zero suffixes) and reduces per-bucket storage from ⌈log₂(b-k)⌉ to ⌈log₂(3 + log₂(U/m))⌉ bits.</p>
+    </div>
+    <div class="compare-card">
+      <h4>Truncation Rule</h4>
+      <p style="font-size:12.5px; margin:0;">Drop the largest <strong>30%</strong> of B[j] values before computing the mean. This eliminates high-bias outliers. Applied <em>after</em> the restriction rule, the number of remaining buckets must be adjusted.</p>
+    </div>
+  </div>
+
+  <div class="math-block">
+SuperLogLog Standard Error ≈ 1.05/√m    <span class="comment">← 24% better than LogLog!</span>
+LogLog Standard Error      ≈ 1.30/√m
+
+Space example: U = 2^30, m = 2^10, b = 64-bit hash
+  Without restriction: each bucket stores up to 54 → 6 bits
+  With restriction:    each bucket stores up to 23 → 5 bits  (saving 1 bit/bucket = 1 KB total)
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header">
+      <span class="demo-title">Interactive — SuperLogLog with Truncation Visualization</span>
+    </div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field">
+          <label>True σ</label>
+          <input type="number" id="sll-sigma" value="512" min="1" max="100000">
+        </div>
+        <div class="field">
+          <label>k (m=2^k)</label>
+          <input type="number" id="sll-k" value="4" min="2" max="6">
+        </div>
+        <div class="field">
+          <label>Hash Seed</label>
+          <input type="number" id="sll-seed" value="42" min="1" max="999">
+        </div>
+        <div class="field" style="justify-content: flex-end;">
+          <button onclick="runSuperLogLog()">Compare LL vs SLL</button>
+        </div>
+      </div>
+      <div id="sll-output"></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section id="compare">
+  <div class="section-label">Section 07</div>
+  <h2>Algorithm Comparison & Trade-offs</h2>
+
+  <div class="demo-card">
+    <div class="demo-header">
+      <span class="demo-title">Side-by-Side Comparison — All Algorithms on Same Stream</span>
+    </div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field">
+          <label>True σ (distinct count)</label>
+          <input type="number" id="cmp-sigma" value="200" min="1" max="10000">
+        </div>
+        <div class="field">
+          <label>Stream length n</label>
+          <input type="number" id="cmp-n" value="500" min="10" max="50000">
+        </div>
+        <div class="field">
+          <label>Trials (avg over)</label>
+          <input type="number" id="cmp-trials" value="20" min="5" max="100">
+        </div>
+        <div class="field" style="justify-content: flex-end;">
+          <button onclick="runComparison()">Run All</button>
+        </div>
+      </div>
+      <div id="cmp-output"></div>
+    </div>
+  </div>
+
+  <h3>Theoretical Summary</h3>
+  <table class="trace-table" style="margin-top:1rem;">
+    <thead>
+      <tr>
+        <th>Algorithm</th>
+        <th>Space (bits)</th>
+        <th>Std Error</th>
+        <th>Hash Functions</th>
+        <th>Mean Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="val-gold">Basic FM</td>
+        <td>O(log U)</td>
+        <td class="val-red">≈ 1/(σ+1)</td>
+        <td>1</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td class="val-gold">Improved FM</td>
+        <td>O(r log U)</td>
+        <td class="val-cyan">≈ 1/(√r · σ)</td>
+        <td>r</td>
+        <td>Arithmetic</td>
+      </tr>
+      <tr>
+        <td class="val-gold">Idealized FM</td>
+        <td>O(ε⁻² log(1/δ) log U)</td>
+        <td class="val-green">εσ w.p. ≥ 1-δ</td>
+        <td>r·s</td>
+        <td>Median of means</td>
+      </tr>
+      <tr>
+        <td class="val-cyan">LogLog</td>
+        <td>O(m log log U)</td>
+        <td class="val-cyan">1.30/√m</td>
+        <td>1</td>
+        <td>Geometric</td>
+      </tr>
+      <tr>
+        <td class="val-cyan">SuperLogLog</td>
+        <td>O(m log log U)</td>
+        <td class="val-green">1.05/√m</td>
+        <td>1</td>
+        <td>Truncated geom.</td>
+      </tr>
+      <tr>
+        <td class="val-purple">HyperLogLog</td>
+        <td>O(m log log U)</td>
+        <td class="val-green">1.04/√m</td>
+        <td>1</td>
+        <td>Harmonic</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:1.5rem;">
+    <strong>Practical Numbers (from paper):</strong> For distinct count σ = 10⁸ with 2% standard error — LogLog used 2.1 KB, SuperLogLog 1.7 KB, HyperLogLog 1.5 KB.
+  </div>
+</section>
+
+<footer style="padding: 3rem 5vw; border-top: 1px solid var(--border); text-align:center;">
+  <p style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em;">
+    Based on lecture notes by Prof. Arnab Ganguly · CSD 482 · Shiv Nadar IoE
+  </p>
+  <p style="font-family: var(--mono); font-size: 10px; color: var(--border); letter-spacing: 0.08em; margin-top:0.5rem;">
+    Flajolet & Martin (1985) · Durand & Flajolet (2003) · Flajolet et al. (2007)
+  </p>
+</footer>
+
+<script>
+// ===== HASH FUNCTIONS =====
+// Simple but reasonable multiplicative hash → (0,1]
+function hashReal(value, seed) {
+  let h = seed ^ (value * 2654435761);
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = (h ^ (h >>> 16)) >>> 0;
+  return (h + 1) / (0x100000000 + 1); // → (0,1]
+}
+
+function hashInt(value, seed, L) {
+  let h = (seed * 6364136223846793005n + BigInt(value) * 1442695040888963407n) & 0xFFFFFFFFFFFFFFFFn;
+  h = BigInt.asUintN(L, h);
+  return Number(h);
+}
+
+function hashIntSimple(value, seed, bits) {
+  let h = ((value * 2246822519 + seed * 2246822519) ^ (value * 3266489917)) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  h = Math.imul(h, 0x45d9f3b) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  // return lower `bits` bits
+  return h & ((1 << bits) - 1);
+}
+
+// rho: trailing zeros (position of least significant 1-bit)
+function rho(u, L) {
+  if (u === 0) return L;
+  let count = 0;
+  while ((u & 1) === 0 && count < L) { u >>= 1; count++; }
+  return count;
+}
+
+// leading zeros in the remaining (b-k) bits starting from position k
+function leadingZeros(hashVal, k, b) {
+  // get bits from position k to b-1
+  let remaining = hashVal >> k; // shift out the first k bits
+  let count = 0;
+  let maxCheck = b - k;
+  for (let i = 0; i < maxCheck; i++) {
+    if ((remaining & 1) === 0) { count++; remaining >>= 1; }
+    else break;
+  }
+  return count;
+}
+
+// ===== PARSE STREAM =====
+function parseStream(str) {
+  return str.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x));
+}
+
+function countDistinct(arr) {
+  return new Set(arr).size;
+}
+
+// ===== BASIC FM =====
+function runBasicFM() {
+  const stream = parseStream(document.getElementById('fm-input').value);
+  const seed = parseInt(document.getElementById('fm-seed').value) || 42;
+  if (!stream.length) { document.getElementById('fm-output').innerHTML = '<p class="val-red">No valid input.</p>'; return; }
+
+  const actual = countDistinct(stream);
+  let minX = Infinity;
+  const rows = [];
+
+  for (const u of stream) {
+    const hv = hashReal(u, seed);
+    const prev = minX;
+    if (hv < minX) minX = hv;
+    rows.push({ u, hv, minX, changed: minX < prev });
+  }
+
+  const estimate = Math.round(1 / minX - 1);
+  const err = Math.abs(estimate - actual) / actual * 100;
+
+  let html = `
+    <table class="trace-table">
+      <thead><tr><th>Element</th><th>h(u) ∈ (0,1]</th><th>Running Min X</th><th>Min Changed?</th></tr></thead>
+      <tbody>`;
+
+  for (const r of rows) {
+    const cls = r.changed ? 'highlight' : '';
+    html += `<tr class="${cls}">
+      <td class="val-gold">${r.u}</td>
+      <td class="val-cyan">${r.hv.toFixed(8)}</td>
+      <td>${r.minX.toFixed(8)}</td>
+      <td>${r.changed ? '<span class="val-green">✓ updated</span>' : '<span style="color:var(--border)">—</span>'}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+
+  <div class="result-box">
+    <div class="result-item"><div class="result-label">Min X</div><div class="result-value" style="font-size:1rem;">${minX.toFixed(8)}</div></div>
+    <div class="result-item"><div class="result-label">Estimate σ̂ = 1/X − 1</div><div class="result-value">${estimate}</div></div>
+    <div class="result-item"><div class="result-label">Actual σ</div><div class="result-value actual">${actual}</div></div>
+    <div class="result-item"><div class="result-label">Error</div><div class="result-value error ${err < 20 ? 'good' : 'bad'}">${err.toFixed(1)}%</div></div>
+  </div>
+
+  <div class="callout warn" style="margin-top:1rem;">
+    <strong>Note:</strong> The high variance of X means this single estimate can be very wrong. Try changing the seed to see how drastically results vary — this is why we need the Improved FM sketch.
+  </div>`;
+
+  document.getElementById('fm-output').innerHTML = html;
+}
+
+// ===== IMPROVED FM =====
+function runImprovedFM() {
+  const stream = parseStream(document.getElementById('ifm-input').value);
+  const r = parseInt(document.getElementById('ifm-r').value) || 5;
+  if (!stream.length) return;
+
+  const actual = countDistinct(stream);
+  const Xs = [];
+  const estimates = [];
+
+  for (let j = 0; j < r; j++) {
+    let minX = Infinity;
+    for (const u of stream) {
+      const hv = hashReal(u, j * 1009 + 37);
+      if (hv < minX) minX = hv;
+    }
+    Xs.push(minX);
+    estimates.push(1 / minX - 1);
+  }
+
+  const Xbar = Xs.reduce((a,b)=>a+b,0)/r;
+  const finalEst = Math.round(1/Xbar - 1);
+  const err = Math.abs(finalEst - actual)/actual*100;
+
+  let html = `<table class="trace-table">
+    <thead><tr><th>j</th><th>Seed</th><th>Min Xⱼ</th><th>Estimate 1/Xⱼ−1</th></tr></thead>
+    <tbody>`;
+
+  for (let j = 0; j < r; j++) {
+    html += `<tr>
+      <td class="val-gold">${j}</td>
+      <td class="val-cyan">${j*1009+37}</td>
+      <td>${Xs[j].toFixed(8)}</td>
+      <td>${estimates[j].toFixed(2)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+
+  <div class="result-box">
+    <div class="result-item"><div class="result-label">X̄ (mean of Xⱼ)</div><div class="result-value" style="font-size:1rem;">${Xbar.toFixed(8)}</div></div>
+    <div class="result-item"><div class="result-label">Final Estimate 1/X̄−1</div><div class="result-value">${finalEst}</div></div>
+    <div class="result-item"><div class="result-label">Actual σ</div><div class="result-value actual">${actual}</div></div>
+    <div class="result-item"><div class="result-label">Error</div><div class="result-value error ${err<20?'good':'bad'}">${err.toFixed(1)}%</div></div>
+  </div>
+
+  <div class="callout">
+    <strong>Variance:</strong> Var(X̄) &lt; 1/(r·(σ+1)²). With r=${r} hash functions, the bound on failure prob is 1/(r·ε²). Increase r to see stability improve.
+  </div>`;
+
+  document.getElementById('ifm-output').innerHTML = html;
+}
+
+// ===== IDEAL FM PARAMS =====
+function calcIdealFM() {
+  const eps = parseFloat(document.getElementById('ideal-eps').value) || 0.1;
+  const delta = parseFloat(document.getElementById('ideal-delta').value) || 0.05;
+
+  const r = Math.ceil(3 / (eps * eps));
+  const s = Math.ceil(48 * Math.log(1/delta));
+  const totalHashes = r * s;
+
+  const html = `
+  <div class="result-box" style="flex-wrap:wrap; gap:1.5rem;">
+    <div class="result-item"><div class="result-label">ε (error bound)</div><div class="result-value" style="font-size:1.2rem;">${eps}</div></div>
+    <div class="result-item"><div class="result-label">δ (failure prob)</div><div class="result-value" style="font-size:1.2rem;">${delta}</div></div>
+    <div class="result-item"><div class="result-label">r = ⌈3/ε²⌉</div><div class="result-value">${r}</div></div>
+    <div class="result-item"><div class="result-label">s = ⌈48 ln(1/δ)⌉</div><div class="result-value">${s}</div></div>
+    <div class="result-item"><div class="result-label">Total hash fns = r·s</div><div class="result-value val-red">${totalHashes}</div></div>
+  </div>
+  <table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>Parameter</th><th>Value</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="val-gold">r</td><td class="val-cyan">${r}</td><td>Copies per Improved FM instance. Each succeeds w.p. ≥ 2/3.</td></tr>
+      <tr><td class="val-gold">s</td><td class="val-cyan">${s}</td><td>Number of Improved FM instances. Median chosen.</td></tr>
+      <tr><td class="val-gold">Success prob</td><td class="val-green">≥ 1−${delta}</td><td>Estimate within (1±O(ε))·σ</td></tr>
+      <tr><td class="val-gold">Chebyshev bound</td><td>1/(r·ε²) = ${(1/(r*eps*eps)).toFixed(4)}</td><td>Failure prob of single Improved FM instance</td></tr>
+      <tr><td class="val-gold">Chernoff reduction</td><td>e^{-s/48} ≤ ${Math.exp(-s/48).toFixed(6)}</td><td>Should be ≤ δ=${delta}</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <strong>Trade-off:</strong> Naive approach (single Improved FM with 1/δε² hash functions) needs ${Math.ceil(1/(delta*eps*eps))} hashes. Median-of-means uses only ${totalHashes} — a ${(Math.ceil(1/(delta*eps*eps))/totalHashes).toFixed(1)}× reduction!
+  </div>`;
+
+  document.getElementById('ideal-output').innerHTML = html;
+}
+
+// ===== NON-IDEAL FM =====
+function runNonIdealFM(mode) {
+  let stream, L, seed;
+
+  if (mode === 'manual') {
+    stream = parseStream(document.getElementById('nfm-input').value);
+    L = parseInt(document.getElementById('nfm-L').value) || 8;
+    seed = parseInt(document.getElementById('nfm-seed').value) || 7;
+  } else if (mode === 'auto') {
+    const sigma = parseInt(document.getElementById('nfm-sigma').value) || 10;
+    const reps = parseInt(document.getElementById('nfm-reps').value) || 3;
+    seed = parseInt(document.getElementById('nfm-seed2').value) || 13;
+    stream = [];
+    for (let i = 1; i <= sigma; i++) {
+      for (let j = 0; j < reps; j++) stream.push(i);
+    }
+    L = 12;
+  }
+
+  renderNonIdealFM(stream, L, seed, 'nfm-output');
+}
+
+function runEdgeCase(caseType) {
+  let stream, L, seed, note;
+  seed = 42; L = 8;
+
+  switch(caseType) {
+    case 'empty':
+      stream = [];
+      note = 'Empty stream: R = 0 (MAP all 1s), estimate = 1/φ ≈ 1.3 ≠ 0';
+      break;
+    case 'single':
+      stream = [42];
+      note = 'Single element: σ = 1. Estimate should be close to 1.';
+      break;
+    case 'duplicates':
+      stream = [7, 7, 7, 7, 7, 7, 7, 7];
+      note = 'All duplicates: σ = 1. Hash is same each time, only one bit gets flipped.';
+      break;
+    case 'large':
+      stream = Array.from({length: 200}, (_, i) => i + 1);
+      note = 'Large cardinality: σ = 200. With L=8, R might hit L causing overflow.';
+      L = 10;
+      break;
+    case 'unlucky':
+      stream = [1, 2, 3, 4, 5];
+      seed = 7;
+      note = 'Unlucky hash seed: some seeds produce hash values that skew R by ±1, giving 2× error.';
+      break;
+  }
+
+  renderNonIdealFM(stream, L, seed, 'nfm-output', note);
+}
+
+function renderNonIdealFM(stream, L, seed, outputId, extraNote) {
+  const phi = 0.77351;
+  const actual = countDistinct(stream);
+
+  const MAP = new Array(L).fill(1);
+  const rows = [];
+
+  for (const u of stream) {
+    const hv = hashIntSimple(u, seed, L);
+    const idx = rho(hv, L);
+    let changed = false;
+    if (idx < L && MAP[idx] === 1) {
+      MAP[idx] = 0;
+      changed = true;
+    }
+    const hvBin = hv.toString(2).padStart(L, '0');
+    rows.push({ u, hv, hvBin, idx, changed, mapSnap: [...MAP] });
+  }
+
+  const R = MAP.indexOf(1);
+  const Rfinal = R === -1 ? L : R;
+  const estimate = Math.round(Math.pow(2, Rfinal) / phi);
+  const err = actual > 0 ? Math.abs(estimate - actual)/actual*100 : 0;
+
+  let html = '';
+
+  if (extraNote) {
+    html += `<div class="callout warn"><strong>Edge Case:</strong> ${extraNote}</div>`;
+  }
+
+  // Bitmap
+  html += '<div style="margin:1rem 0;"><div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-bottom:0.5rem; letter-spacing:0.1em;">FINAL BITMAP STATE</div><div class="bitmap-display">';
+  for (let i = 0; i < L; i++) {
+    const isR = (i === Rfinal);
+    const cls = isR ? 'bit-cell is-r' : (MAP[i] === 1 ? 'bit-cell is-one' : 'bit-cell is-zero');
+    html += `<div class="${cls}"><span class="idx">[${i}]</span><span class="val">${MAP[i]}</span></div>`;
+  }
+  html += '</div>';
+  if (R === -1) html += '<p style="color:var(--red); font-family:var(--mono); font-size:11px; margin-top:4px;">⚠ All bits are 0! R = L (overflow). σ may be too large for L bits.</p>';
+  html += '</div>';
+
+  // Trace
+  html += `<table class="trace-table">
+    <thead><tr><th>u</th><th>h(u)</th><th>Binary</th><th>ρ(h(u))</th><th>MAP[ρ] ← 0?</th></tr></thead>
+    <tbody>`;
+
+  // Only show first 30 rows to avoid DOM bloat
+  const shown = rows.slice(0, 30);
+  for (const r of shown) {
+    html += `<tr class="${r.changed ? 'highlight' : ''}">
+      <td class="val-gold">${r.u}</td>
+      <td class="val-cyan">${r.hv}</td>
+      <td style="font-family:var(--mono); font-size:11px; letter-spacing:0.1em;">${r.hvBin}</td>
+      <td class="val-purple">${r.idx === L ? 'L (ρ=0→skip)' : r.idx}</td>
+      <td>${r.changed ? '<span class="val-green">✓ MAP['+r.idx+'] = 0</span>' : '<span style="color:var(--border);">—</span>'}</td>
+    </tr>`;
+  }
+  if (rows.length > 30) html += `<tr><td colspan="5" style="color:var(--text-dim); font-style:italic; text-align:center;">… ${rows.length - 30} more rows …</td></tr>`;
+  html += `</tbody></table>
+
+  <div class="result-box">
+    <div class="result-item"><div class="result-label">R (first 1 in MAP)</div><div class="result-value" style="font-size:1.3rem;">${Rfinal === L ? 'L='+L+' (overflow)' : Rfinal}</div></div>
+    <div class="result-item"><div class="result-label">Estimate 2^R/φ</div><div class="result-value">${estimate}</div></div>
+    <div class="result-item"><div class="result-label">Actual σ</div><div class="result-value actual">${actual}</div></div>
+    <div class="result-item"><div class="result-label">Error</div><div class="result-value error ${err < 30 ? 'good' : 'bad'}">${actual > 0 ? err.toFixed(1)+'%' : 'N/A'}</div></div>
+  </div>
+
+  <div class="callout">
+    <strong>Key insight:</strong> E[R] = log₂(φ·σ) ≈ log₂(${(phi*actual).toFixed(1)}). An error of ±1 in R gives a 2× error in σ̂ (since estimate is a power of 2). Var(R) ≈ 1.2544 means std dev ≈ 1.12 — so off-by-one is common!
+  </div>`;
+
+  document.getElementById(outputId).innerHTML = html;
+}
+
+// ===== LOGLOG =====
+function runLogLog() {
+  const stream = parseStream(document.getElementById('ll-input').value);
+  const k = parseInt(document.getElementById('ll-k').value) || 3;
+  const b = parseInt(document.getElementById('ll-b').value) || 8;
+  const seed = parseInt(document.getElementById('ll-seed').value) || 17;
+
+  if (b <= k) { document.getElementById('ll-output').innerHTML = '<p class="val-red">b must be greater than k.</p>'; return; }
+
+  const m = 1 << k;
+  const actual = countDistinct(stream);
+  const B = new Array(m).fill(0);
+  const alpha_m = getAlphaM(m);
+  const rows = [];
+
+  for (const u of stream) {
+    const hv = hashIntSimple(u, seed, b);
+    const hvBin = hv.toString(2).padStart(b, '0');
+    const bucketIdx = hv >> (b - k); // first k bits
+    const lz = leadingZeros(hv, 0, b - k); // leading zeros in remaining bits (after first k)
+    // Actually: x = first k bits, then look at remaining b-k bits for leading zeros
+    const x = (hv >> (b - k)) & (m - 1);
+    const remaining = hv & ((1 << (b - k)) - 1);
+    let r = 0;
+    let tmp = remaining;
+    for (let i = b - k - 1; i >= 0; i--) {
+      if ((remaining >> i) & 1) { r = (b - k - 1 - i); break; }
+      if (i === 0) r = b - k;
+    }
+    const prev = B[x];
+    B[x] = Math.max(B[x], r);
+    rows.push({ u, hv, hvBin, x, r, prevB: prev, newB: B[x], changed: B[x] > prev });
+  }
+
+  const rBar = B.reduce((a,b2)=>a+b2,0)/m;
+  const estimate = Math.round(alpha_m * m * Math.pow(2, rBar));
+  const err = Math.abs(estimate - actual)/actual*100;
+
+  let html = '';
+
+  // Buckets
+  html += '<div style="margin:1rem 0;"><div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-bottom:0.5rem; letter-spacing:0.1em;">BUCKET ARRAY B[0..m-1] (m=' + m + ')</div><div class="bucket-grid">';
+  for (let i = 0; i < m; i++) {
+    html += `<div class="bucket-cell ${B[i] > 0 ? 'active' : ''}">
+      <div class="b-idx">B[${i}]</div>
+      <div class="b-val">${B[i]}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+
+  // Trace
+  html += `<table class="trace-table">
+    <thead><tr><th>u</th><th>h(u) binary</th><th>bucket x</th><th>r (leading 0s)</th><th>B[x] update</th></tr></thead>
+    <tbody>`;
+
+  const shown = rows.slice(0, 25);
+  for (const row of shown) {
+    const kBits = row.hvBin.substring(0, k);
+    const restBits = row.hvBin.substring(k);
+    html += `<tr class="${row.changed ? 'highlight' : ''}">
+      <td class="val-gold">${row.u}</td>
+      <td style="font-family:var(--mono); font-size:11px;"><span style="color:var(--gold);">${kBits}</span><span style="color:var(--cyan);">${restBits}</span></td>
+      <td class="val-gold">${row.x}</td>
+      <td class="val-purple">${row.r}</td>
+      <td>${row.changed ? `<span class="val-green">${row.prevB} → ${row.newB}</span>` : `<span style="color:var(--border);">${row.prevB} (no change)</span>`}</td>
+    </tr>`;
+  }
+  if (rows.length > 25) html += `<tr><td colspan="5" style="color:var(--text-dim); font-style:italic; text-align:center;">… ${rows.length-25} more rows …</td></tr>`;
+  html += `</tbody></table>
+
+  <div class="math-block" style="margin-top:1rem;">
+r̄ = (Σ B[j]) / m = ${B.reduce((a,b2)=>a+b2,0)} / ${m} = ${rBar.toFixed(4)}
+α_m = ${alpha_m.toFixed(5)}
+σ̂ = α_m × m × 2^{r̄} = ${alpha_m.toFixed(5)} × ${m} × ${Math.pow(2,rBar).toFixed(4)} = ${estimate}
+  </div>
+
+  <div class="result-box">
+    <div class="result-item"><div class="result-label">m (buckets)</div><div class="result-value" style="font-size:1.2rem;">${m}</div></div>
+    <div class="result-item"><div class="result-label">r̄ (mean)</div><div class="result-value" style="font-size:1.2rem;">${rBar.toFixed(3)}</div></div>
+    <div class="result-item"><div class="result-label">Estimate σ̂</div><div class="result-value">${estimate}</div></div>
+    <div class="result-item"><div class="result-label">Actual σ</div><div class="result-value actual">${actual}</div></div>
+    <div class="result-item"><div class="result-label">Error</div><div class="result-value error ${err<40?'good':'bad'}">${err.toFixed(1)}%</div></div>
+    <div class="result-item"><div class="result-label">Theo. std err</div><div class="result-value" style="font-size:1rem;">${(1.30/Math.sqrt(m)*100).toFixed(1)}%</div></div>
+  </div>`;
+
+  document.getElementById('ll-output').innerHTML = html;
+}
+
+function getAlphaM(m) {
+  // LogLog alpha_m ≈ (Γ(-1/m)(1 - 2^{1/m}) / ln 2)^{-m} — approximation
+  return 0.39701 - (2 * Math.PI * Math.PI + Math.LN2 * Math.LN2) / (48 * m);
+}
+
+function getAlphaHLL(m) {
+  if (m === 16) return 0.673;
+  if (m === 32) return 0.697;
+  if (m === 64) return 0.709;
+  return 0.7213 / (1 + 1.079 / m);
+}
+
+// ===== LOGLOG ACCURACY =====
+function runLLAccuracy() {
+  const sigma = parseInt(document.getElementById('ll-acc-sigma').value) || 1000;
+  const kValues = [2, 3, 4, 5, 6, 7];
+
+  let html = `<table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>k</th><th>m = 2^k</th><th>Theo. Std Err</th><th>For 10% err, m needed</th><th>Space (bits, b=32)</th></tr></thead>
+    <tbody>`;
+
+  for (const k of kValues) {
+    const m = 1 << k;
+    const stdErr = 1.30 / Math.sqrt(m) * 100;
+    const mFor10 = Math.ceil(1.69 / 0.01);
+    const bitsPerBucket = Math.ceil(Math.log2(Math.log2(sigma) + 1));
+    const totalBits = m * bitsPerBucket;
+    html += `<tr>
+      <td class="val-cyan">${k}</td>
+      <td class="val-gold">${m}</td>
+      <td class="${stdErr < 15 ? 'val-green' : stdErr < 30 ? 'val-cyan' : 'val-red'}">${stdErr.toFixed(1)}%</td>
+      <td>${mFor10}</td>
+      <td>${totalBits} bits (${(totalBits/8).toFixed(0)} bytes)</td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+
+  <div class="callout" style="margin-top:1rem;">
+    <strong>Rule of thumb:</strong> For ε error, use m ≥ 1.69/ε². For 10% error: m ≥ 169. For 1% error: m ≥ 16,900.
+    Each bucket stores ≈ log₂(log₂ σ) bits — very compact!
+  </div>`;
+
+  document.getElementById('ll-acc-output').innerHTML = html;
+}
+
+// ===== SUPERLOGLOG =====
+function runSuperLogLog() {
+  const sigma = parseInt(document.getElementById('sll-sigma').value) || 512;
+  const k = parseInt(document.getElementById('sll-k').value) || 4;
+  const seed = parseInt(document.getElementById('sll-seed').value) || 42;
+
+  const m = 1 << k;
+  const b = 20;
+  const B = new Array(m).fill(0);
+  const alpha_m = getAlphaM(m);
+
+  // Generate stream of sigma distinct elements with repetitions
+  const stream = [];
+  for (let i = 1; i <= sigma; i++) {
+    stream.push(i);
+    if (Math.random() < 0.5) stream.push(i); // some duplicates
+  }
+
+  for (const u of stream) {
+    const hv = hashIntSimple(u, seed, b);
+    const x = (hv >> (b - k)) & (m - 1);
+    const remaining = hv & ((1 << (b - k)) - 1);
+    let r = 0;
+    for (let i = b - k - 1; i >= 0; i--) {
+      if ((remaining >> i) & 1) { r = b - k - 1 - i; break; }
+      if (i === 0) r = b - k;
+    }
+    B[x] = Math.max(B[x], r);
+  }
+
+  // LogLog estimate
+  const rBarLL = B.reduce((a,b2)=>a+b2,0)/m;
+  const estLL = Math.round(alpha_m * m * Math.pow(2, rBarLL));
+
+  // SuperLogLog: restriction + truncation
+  const maxR = 3 + Math.ceil(Math.log2(Math.pow(2, b) / m));
+  const restricted = B.filter(v => v <= maxR);
+  const sorted = [...restricted].sort((a,b2)=>a-b2);
+  const cutoff = Math.floor(sorted.length * 0.7);
+  const truncated = sorted.slice(0, cutoff);
+  const rBarSLL = truncated.length > 0 ? truncated.reduce((a,b2)=>a+b2,0)/truncated.length : 0;
+  const mAdj = truncated.length;
+  const estSLL = mAdj > 0 ? Math.round(alpha_m * m * Math.pow(2, rBarSLL)) : 0;
+
+  const errLL = Math.abs(estLL - sigma)/sigma*100;
+  const errSLL = Math.abs(estSLL - sigma)/sigma*100;
+
+  // Show bucket grid with top-30% highlighted
+  const topThreshold = sorted.length > 0 ? sorted[cutoff] : Infinity;
+
+  let html = '<div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-bottom:0.5rem; letter-spacing:0.1em;">BUCKETS (red = dropped by truncation rule)</div>';
+  html += '<div class="bucket-grid">';
+  for (let i = 0; i < m; i++) {
+    const isTop = B[i] > topThreshold || (B[i] === topThreshold && sorted.indexOf(B[i]) >= cutoff);
+    html += `<div class="bucket-cell ${isTop ? 'top30' : (B[i] > 0 ? 'active' : '')}">
+      <div class="b-idx">B[${i}]</div>
+      <div class="b-val">${B[i]}</div>
+    </div>`;
+  }
+  html += '</div>';
+
+  html += `<table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>Property</th><th>LogLog</th><th>SuperLogLog</th></tr></thead>
+    <tbody>
+      <tr><td class="val-gold">r̄ (mean)</td><td>${rBarLL.toFixed(4)}</td><td>${rBarSLL.toFixed(4)}</td></tr>
+      <tr><td class="val-gold">Buckets used</td><td>${m}</td><td>${mAdj} (${m-mAdj} dropped)</td></tr>
+      <tr><td class="val-gold">Estimate σ̂</td><td class="val-cyan">${estLL}</td><td class="val-cyan">${estSLL}</td></tr>
+      <tr><td class="val-gold">Actual σ</td><td class="val-green">${sigma}</td><td class="val-green">${sigma}</td></tr>
+      <tr><td class="val-gold">Error</td><td class="${errLL<20?'val-green':'val-red'}">${errLL.toFixed(1)}%</td><td class="${errSLL<20?'val-green':'val-red'}">${errSLL.toFixed(1)}%</td></tr>
+      <tr><td class="val-gold">Theo. std err</td><td>1.30/√${m} = ${(1.30/Math.sqrt(m)*100).toFixed(1)}%</td><td>1.05/√${m} = ${(1.05/Math.sqrt(m)*100).toFixed(1)}%</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:1rem;">
+    <strong>Restriction rule:</strong> max allowed r = 3 + ⌈log₂(U/m)⌉ = ${maxR}. Buckets with values above this are excluded.
+    <br><strong>Truncation rule:</strong> Drop top 30% of remaining values (${m - cutoff} buckets dropped). Mean computed over ${cutoff} buckets.
+  </div>`;
+
+  document.getElementById('sll-output').innerHTML = html;
+}
+
+// ===== COMPARISON =====
+function runComparison() {
+  const sigma = parseInt(document.getElementById('cmp-sigma').value) || 200;
+  const n = parseInt(document.getElementById('cmp-n').value) || 500;
+  const trials = parseInt(document.getElementById('cmp-trials').value) || 20;
+
+  // Generate base elements
+  const distinct = Array.from({length: sigma}, (_,i) => i+1);
+
+  const results = { basicFM: [], improvedFM: [], loglog: [], superloglog: [] };
+
+  for (let t = 0; t < trials; t++) {
+    // Generate stream
+    const stream = [];
+    for (let i = 0; i < n; i++) {
+      stream.push(distinct[Math.floor(Math.random() * sigma)]);
+    }
+
+    // Basic FM
+    let minX = Infinity;
+    for (const u of stream) minX = Math.min(minX, hashReal(u, t*37+11));
+    results.basicFM.push(Math.round(1/minX - 1));
+
+    // Improved FM (r=10)
+    const xs = [];
+    for (let j = 0; j < 10; j++) {
+      let minXj = Infinity;
+      for (const u of stream) minXj = Math.min(minXj, hashReal(u, t*37+j*1009+11));
+      xs.push(minXj);
+    }
+    const Xbar = xs.reduce((a,b)=>a+b,0)/10;
+    results.improvedFM.push(Math.round(1/Xbar - 1));
+
+    // LogLog (k=4, m=16)
+    const kLL = 4; const mLL = 16; const bLL = 20;
+    const BLL = new Array(mLL).fill(0);
+    for (const u of stream) {
+      const hv = hashIntSimple(u, t*37+999, bLL);
+      const x = (hv >> (bLL - kLL)) & (mLL - 1);
+      const rem = hv & ((1 << (bLL - kLL)) - 1);
+      let r = 0;
+      for (let i = bLL - kLL - 1; i >= 0; i--) {
+        if ((rem >> i) & 1) { r = bLL - kLL - 1 - i; break; }
+        if (i === 0) r = bLL - kLL;
+      }
+      BLL[x] = Math.max(BLL[x], r);
+    }
+    const rBarLL = BLL.reduce((a,b)=>a+b,0)/mLL;
+    results.loglog.push(Math.round(getAlphaM(mLL) * mLL * Math.pow(2, rBarLL)));
+
+    // SuperLogLog
+    const sorted = [...BLL].sort((a,b)=>a-b);
+    const cutoff = Math.floor(sorted.length * 0.7);
+    const trunc = sorted.slice(0, cutoff);
+    const rBarSLL = trunc.length > 0 ? trunc.reduce((a,b)=>a+b,0)/trunc.length : 0;
+    results.superloglog.push(Math.round(getAlphaM(mLL) * mLL * Math.pow(2, rBarSLL)));
+  }
+
+  const stat = (arr) => {
+    const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+    const std = Math.sqrt(arr.reduce((a,b)=>a+(b-mean)**2,0)/arr.length);
+    const err = Math.abs(mean-sigma)/sigma*100;
+    return { mean: mean.toFixed(1), std: std.toFixed(1), err: err.toFixed(1) };
+  };
+
+  const s1 = stat(results.basicFM);
+  const s2 = stat(results.improvedFM);
+  const s3 = stat(results.loglog);
+  const s4 = stat(results.superloglog);
+
+  let html = `<div class="callout" style="margin-bottom:1rem;"><strong>Simulation:</strong> ${trials} trials, σ=${sigma} distinct elements, n=${n} stream length. LogLog/SLL use k=4, m=16.</div>
+
+  <table class="trace-table">
+    <thead><tr><th>Algorithm</th><th>Mean Estimate</th><th>Std Dev</th><th>Mean Error</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="val-gold">Basic FM</td>
+        <td>${s1.mean}</td>
+        <td class="val-red">${s1.std}</td>
+        <td class="${parseFloat(s1.err)<30?'val-green':'val-red'}">${s1.err}%</td>
+        <td style="font-size:11px; color:var(--text-dim);">High variance, unstable</td>
+      </tr>
+      <tr>
+        <td class="val-gold">Improved FM (r=10)</td>
+        <td>${s2.mean}</td>
+        <td class="val-cyan">${s2.std}</td>
+        <td class="${parseFloat(s2.err)<25?'val-green':'val-red'}">${s2.err}%</td>
+        <td style="font-size:11px; color:var(--text-dim);">10 hash functions</td>
+      </tr>
+      <tr>
+        <td class="val-cyan">LogLog (m=16)</td>
+        <td>${s3.mean}</td>
+        <td class="val-green">${s3.std}</td>
+        <td class="${parseFloat(s3.err)<35?'val-green':'val-red'}">${s3.err}%</td>
+        <td style="font-size:11px; color:var(--text-dim);">1 hash fn, theo err ≈ 32%</td>
+      </tr>
+      <tr>
+        <td class="val-cyan">SuperLogLog (m=16)</td>
+        <td>${s4.mean}</td>
+        <td class="val-green">${s4.std}</td>
+        <td class="${parseFloat(s4.err)<30?'val-green':'val-red'}">${s4.err}%</td>
+        <td style="font-size:11px; color:var(--text-dim);">Truncation reduces outliers</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:1rem;">
+    <strong>Actual σ = ${sigma}.</strong> Run multiple times to see variance in action. For LogLog with m=16, theoretical std error ≈ ${(1.30/4*100).toFixed(0)}% — use larger m for better accuracy.
+  </div>`;
+
+  document.getElementById('cmp-output').innerHTML = html;
+}
+
+// ===== TABS =====
+function switchTab(group, tab) {
+  const prefix = group === 'nfm' ? 'nfm' : (group === 'll' ? 'll' : group);
+  const panels = document.querySelectorAll(`[id^="${prefix}-tab-"]`);
+  panels.forEach(p => p.classList.remove('active'));
+  const targetPanel = document.getElementById(`${prefix}-tab-${tab}`);
+  if (targetPanel) targetPanel.classList.add('active');
+
+  // Update button states
+  const allBtns = document.querySelectorAll('.tab-btn');
+  allBtns.forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${group}'`) && b.getAttribute('onclick').includes(`'${tab}'`)) {
+      b.classList.add('active');
+    } else if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${group}'`)) {
+      b.classList.remove('active');
+    }
+  });
+}
+
+// ===== INIT: run default demos =====
+window.addEventListener('DOMContentLoaded', () => {
+  runBasicFM();
+  calcIdealFM();
+});
+</script>
+</body>
+</html>

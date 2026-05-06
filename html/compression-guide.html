@@ -1,0 +1,2844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compression Algorithms — Interactive Guide</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #00ff9d;
+    --accent2: #00b8ff;
+    --accent3: #ff6b6b;
+    --accent4: #ffd700;
+    --text: #e0e0f0;
+    --text-dim: #7a7a9a;
+    --text-bright: #ffffff;
+    --mono: 'Courier New', 'Lucida Console', monospace;
+    --highlight: rgba(0,255,157,0.12);
+    --highlight2: rgba(0,184,255,0.12);
+    --highlight3: rgba(255,107,107,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--mono);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Header */
+  header {
+    padding: 60px 40px 40px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -10%;
+    width: 120%;
+    height: 200%;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,255,157,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-label {
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(24px, 4vw, 42px);
+    color: var(--text-bright);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .header-meta {
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* Nav */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  nav::-webkit-scrollbar { display: none; }
+
+  .nav-item {
+    padding: 16px 20px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: var(--mono);
+  }
+
+  .nav-item:hover { color: var(--text); border-bottom-color: var(--border); }
+  .nav-item.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Main layout */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px;
+  }
+
+  /* Sections */
+  .section {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .section.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Typography */
+  h2 {
+    font-size: 22px;
+    color: var(--text-bright);
+    margin: 48px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: -0.5px;
+  }
+
+  h2:first-child { margin-top: 0; }
+
+  h2 .tag {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+
+  h3 {
+    font-size: 15px;
+    color: var(--accent2);
+    margin: 28px 0 12px;
+    letter-spacing: 0.5px;
+  }
+
+  p {
+    color: var(--text);
+    margin-bottom: 14px;
+    max-width: 780px;
+  }
+
+  .formula {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 15px;
+    color: var(--accent);
+    overflow-x: auto;
+  }
+
+  .info-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .info-box .label {
+    color: var(--accent2);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* Animation container */
+  .anim-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin: 24px 0;
+    overflow: hidden;
+  }
+
+  .anim-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .anim-title {
+    color: var(--accent4);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .anim-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+
+  .btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--highlight);
+  }
+
+  .btn.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--highlight);
+  }
+
+  .btn.primary:hover {
+    background: rgba(0,255,157,0.2);
+  }
+
+  .btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn:disabled:hover {
+    border-color: var(--border);
+    color: var(--text);
+    background: transparent;
+  }
+
+  .step-counter {
+    color: var(--text-dim);
+    font-size: 12px;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .anim-body {
+    padding: 24px;
+  }
+
+  .anim-stage {
+    min-height: 80px;
+    margin-bottom: 16px;
+  }
+
+  .anim-explanation {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text);
+    min-height: 48px;
+    border-left: 3px solid var(--accent4);
+  }
+
+  .anim-explanation .step-label {
+    color: var(--accent4);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* Input section */
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .input-label {
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  input[type="text"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-bright);
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    flex: 1;
+    min-width: 160px;
+    max-width: 320px;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    background: var(--highlight);
+  }
+
+  /* Char display */
+  .char-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 8px 0;
+  }
+
+  .char-cell {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 32px;
+  }
+
+  .char-box {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.3s;
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .char-box.highlight-green {
+    border-color: var(--accent);
+    background: var(--highlight);
+    color: var(--accent);
+  }
+
+  .char-box.highlight-blue {
+    border-color: var(--accent2);
+    background: var(--highlight2);
+    color: var(--accent2);
+  }
+
+  .char-box.highlight-red {
+    border-color: var(--accent3);
+    background: var(--highlight3);
+    color: var(--accent3);
+  }
+
+  .char-box.highlight-gold {
+    border-color: var(--accent4);
+    background: rgba(255,215,0,0.12);
+    color: var(--accent4);
+  }
+
+  .char-box.dim {
+    opacity: 0.3;
+  }
+
+  .char-idx {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+    overflow-x: auto;
+  }
+
+  th {
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  td {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tr:nth-child(even) td { background: var(--surface2); }
+
+  tr.row-active td {
+    background: var(--highlight);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  tr.row-done td {
+    color: var(--text-dim);
+  }
+
+  /* Tree viz */
+  .tree-svg { width: 100%; overflow-x: auto; }
+
+  /* Freq bar */
+  .freq-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 120px;
+    margin: 16px 0;
+  }
+
+  .freq-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .freq-bar {
+    width: 100%;
+    background: var(--accent);
+    opacity: 0.7;
+    transition: all 0.5s ease;
+    min-height: 4px;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .freq-bar-val {
+    font-size: 11px;
+    color: var(--text-dim);
+    position: absolute;
+    top: -18px;
+  }
+
+  .freq-bar-label {
+    font-size: 13px;
+    color: var(--text-bright);
+    font-weight: 700;
+  }
+
+  /* Heap display */
+  .heap-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .heap-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 48px;
+  }
+
+  .heap-node .node-char { font-weight: 700; color: var(--accent); }
+  .heap-node .node-freq { font-size: 11px; color: var(--text-dim); }
+  .heap-node.selected { border-color: var(--accent3); background: var(--highlight3); }
+  .heap-node.merged { border-color: var(--accent4); background: rgba(255,215,0,0.1); }
+
+  /* Code display */
+  .code-table {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    gap: 2px;
+    margin: 12px 0;
+    max-width: 400px;
+  }
+
+  .code-row {
+    display: contents;
+  }
+
+  .code-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+
+  .code-cell.header { color: var(--accent); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .code-cell.char { color: var(--text-bright); font-weight: 700; }
+  .code-cell.freq { color: var(--text-dim); }
+  .code-cell.code { color: var(--accent4); letter-spacing: 2px; font-weight: 700; }
+  .code-cell.active { background: var(--highlight); border-color: var(--accent); }
+
+  /* BWT specific */
+  .matrix-container { overflow-x: auto; margin: 12px 0; }
+
+  .matrix-row {
+    display: flex;
+    gap: 2px;
+    margin: 2px 0;
+    align-items: center;
+  }
+
+  .matrix-row .row-idx {
+    width: 28px;
+    text-align: right;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-right: 6px;
+  }
+
+  .mchar {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    background: var(--surface2);
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+
+  .mchar.first-col { border-color: var(--accent2); color: var(--accent2); background: var(--highlight2); }
+  .mchar.last-col { border-color: var(--accent); color: var(--accent); background: var(--highlight); }
+  .mchar.sorted { border-color: var(--accent4); background: rgba(255,215,0,0.08); }
+
+  .row-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 8px;
+    min-width: 60px;
+  }
+
+  /* MTF list */
+  .mtf-list {
+    display: flex;
+    gap: 3px;
+    margin: 8px 0;
+    flex-wrap: wrap;
+  }
+
+  .mtf-item {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-size: 13px;
+    transition: all 0.4s ease;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .mtf-item.selected { border-color: var(--accent3); background: var(--highlight3); color: var(--accent3); }
+  .mtf-item.moved { border-color: var(--accent); background: var(--highlight); color: var(--accent); }
+
+  /* Arithmetic viz */
+  .interval-viz {
+    position: relative;
+    height: 48px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    margin: 12px 0;
+    overflow: hidden;
+  }
+
+  .interval-segment {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.5s ease;
+    overflow: hidden;
+    border-right: 1px solid var(--bg);
+  }
+
+  .interval-marker {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--accent3);
+    z-index: 5;
+    transition: left 0.5s ease;
+  }
+
+  .interval-marker::after {
+    content: attr(data-val);
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--accent3);
+    white-space: nowrap;
+  }
+
+  .seg-a { background: rgba(0,255,157,0.25); color: var(--accent); }
+  .seg-b { background: rgba(0,184,255,0.25); color: var(--accent2); }
+  .seg-c { background: rgba(255,215,0,0.2); color: var(--accent4); }
+  .seg-d { background: rgba(255,107,107,0.25); color: var(--accent3); }
+  .seg-e { background: rgba(180,100,255,0.25); color: #b464ff; }
+
+  /* Progress dots */
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .dot.done { background: var(--text-dim); }
+  .dot.current { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+  /* Encoded output */
+  .encoded-output {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    margin: 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  .bit {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    transition: color 0.3s;
+  }
+
+  .bit.b0 { color: var(--accent); }
+  .bit.b1 { color: var(--accent4); }
+
+  .bit-group {
+    display: inline-flex;
+    gap: 1px;
+    background: var(--surface);
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+  }
+
+  .bit-group.active { border-color: var(--accent); }
+
+  /* Summary stats */
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+
+  .stat-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    min-width: 140px;
+    flex: 1;
+  }
+
+  .stat-label {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .stat-unit {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  /* Tooltip */
+  .tooltip-wrap {
+    display: inline-block;
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dashed var(--text-dim);
+    color: var(--text);
+  }
+
+  .tooltip-wrap:hover .tooltip-content {
+    display: block;
+  }
+
+  .tooltip-content {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 200;
+    color: var(--text);
+    pointer-events: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    main, header { padding: 20px 16px; }
+    nav { padding: 0 8px; }
+    .nav-item { padding: 14px 12px; font-size: 11px; }
+    .code-table { grid-template-columns: auto auto; }
+  }
+
+  /* RLE runs display */
+  .run-display {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+
+  .run-block {
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    padding: 6px 10px;
+    font-size: 13px;
+    transition: all 0.4s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .run-block .run-char { color: var(--accent2); font-weight: 700; font-size: 15px; }
+  .run-block .run-len { color: var(--text-dim); font-size: 11px; }
+  .run-block.active { border-color: var(--accent3); background: var(--highlight3); }
+  .run-block.encoded { border-color: var(--accent); background: var(--highlight); }
+
+  /* LF mapping table */
+  .lf-table-wrap { overflow-x: auto; }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .warn-box {
+    background: rgba(255,107,107,0.08);
+    border: 1px solid var(--accent3);
+    border-left: 3px solid var(--accent3);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .warn-box .label { color: var(--accent3); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+
+  .tag-pill {
+    display: inline-block;
+    border: 1px solid;
+    padding: 2px 8px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .tag-pill.green { border-color: var(--accent); color: var(--accent); }
+  .tag-pill.blue { border-color: var(--accent2); color: var(--accent2); }
+  .tag-pill.gold { border-color: var(--accent4); color: var(--accent4); }
+  .tag-pill.red { border-color: var(--accent3); color: var(--accent3); }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-label">CSD 482 — Algorithms in the Real World</div>
+  <h1>Data <span>Compression</span><br>Interactive Guide</h1>
+  <div class="header-meta">Entropy Encoding · Huffman · BWT · MTF · RLE · Arithmetic Coding</div>
+</header>
+
+<nav>
+  <button class="nav-item active" onclick="showSection('entropy')">01 · Entropy</button>
+  <button class="nav-item" onclick="showSection('huffman')">02 · Huffman</button>
+  <button class="nav-item" onclick="showSection('shannon')">03 · Shannon-Fano</button>
+  <button class="nav-item" onclick="showSection('arithmetic')">04 · Arithmetic</button>
+  <button class="nav-item" onclick="showSection('bwt')">05 · BWT</button>
+  <button class="nav-item" onclick="showSection('rle')">06 · RLE</button>
+  <button class="nav-item" onclick="showSection('mtf')">07 · MTF</button>
+  <button class="nav-item" onclick="showSection('pipeline')">08 · Pipeline</button>
+</nav>
+
+<main>
+
+<!-- ====== SECTION: ENTROPY ====== -->
+<div class="section active" id="sec-entropy">
+  <h2><span class="tag">Chapter 01</span>Shannon's Entropy</h2>
+
+  <p>Entropy is the theoretical minimum average number of bits needed to represent each character in a message. It is the <em>benchmark</em> every compression scheme tries to reach.</p>
+
+  <div class="formula">
+    H = −Σ (nᵢ/n) · log₂(nᵢ/n)
+  </div>
+
+  <p>Where <strong>nᵢ</strong> is the frequency of character <em>i</em> and <strong>n</strong> is the total message length. Higher entropy = less compressible (more random). Lower entropy = more structure = more compressible.</p>
+
+  <div class="info-box">
+    <div class="label">Key Insight</div>
+    No lossless compression can shorten <em>every</em> possible input — by the Pigeonhole Principle, at least two strings would map to the same code, making decoding impossible. Compression exploits <em>structure</em> in data.
+  </div>
+
+  <h3>Interactive Entropy Calculator</h3>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Entropy Calculator</div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="entropy-input" value="BCCABBDDAECCBBAEDDCC" oninput="calcEntropy()" maxlength="200">
+      </div>
+      <div id="entropy-freq-display" class="freq-bars"></div>
+      <div id="entropy-table-wrap"></div>
+      <div class="stats-row" id="entropy-stats"></div>
+    </div>
+  </div>
+
+  <h3>Encoding Scheme Comparison</h3>
+  <p>Given the same message, different encoding schemes achieve different compression ratios:</p>
+  <div id="encoding-comparison"></div>
+
+</div>
+
+<!-- ====== SECTION: HUFFMAN ====== -->
+<div class="section" id="sec-huffman">
+  <h2><span class="tag">Chapter 02</span>Huffman Coding</h2>
+
+  <p>Huffman coding is <em>optimal</em> for symbol-by-symbol prefix coding. It assigns shorter codes to more frequent characters by building a binary tree greedily — always merging the two lowest-frequency nodes first.</p>
+
+  <div class="info-box">
+    <div class="label">Prefix-Free Property</div>
+    No codeword is a prefix of another. This guarantees unambiguous decoding — just scan bits left-to-right and output whenever you hit a leaf of the tree.
+  </div>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Step-by-Step Huffman Tree Builder</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="huffmanPrev()" id="huf-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="huf-step-counter">Step 0</span>
+        <button class="btn primary" onclick="huffmanNext()" id="huf-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="huffmanReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="huffman-input" value="BCCABBDDAECCBBAEDDCC" maxlength="100">
+        <button class="btn primary" onclick="huffmanInit()">BUILD</button>
+      </div>
+      <div class="progress-dots" id="huf-progress"></div>
+      <div id="huf-heap-display" class="heap-display"></div>
+      <div id="huf-tree-display"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="huf-explanation">Enter text and click BUILD to start.</div>
+      </div>
+      <div id="huf-code-display"></div>
+      <div id="huf-encoded-display"></div>
+    </div>
+  </div>
+
+  <h3>Decoding Walkthrough</h3>
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Huffman Decoder</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="huffmanDecodePrev()" id="hdec-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="hdec-step-counter">Step 0</span>
+        <button class="btn primary" onclick="huffmanDecodeNext()" id="hdec-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="huffmanDecodeReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div id="hdec-bits-display" class="encoded-output"></div>
+      <div id="hdec-tree-pointer"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Decoding</div>
+        <div id="hdec-explanation">Build the encoder first, then decode.</div>
+      </div>
+      <div id="hdec-output-display"></div>
+    </div>
+  </div>
+
+  <h3>Block Huffman</h3>
+  <p>Standard Huffman assigns 1 bit minimum per character. For highly skewed distributions this is suboptimal. <strong>Block Huffman</strong> treats sequences of k characters as a single meta-character, allowing fractional bits per original character.</p>
+  <div class="warn-box">
+    <div class="label">Caveat</div>
+    The alphabet grows as σᵏ — exponentially. For a binary alphabet with block size 2, we get 4 meta-characters. With block size 10, we get 2¹⁰=1024 meta-characters. The mapping table overhead can eliminate gains for small strings.
+  </div>
+</div>
+
+<!-- ====== SECTION: SHANNON-FANO ====== -->
+<div class="section" id="sec-shannon">
+  <h2><span class="tag">Chapter 03</span>Shannon-Fano Encoding</h2>
+
+  <p>Shannon-Fano assigns code lengths of <strong>⌈-log₂(pᵢ)⌉</strong> to each character, then assigns actual codes in lexicographic order while maintaining the prefix-free property.</p>
+
+  <div class="formula">
+    ℓᵢ = ⌈-log₂(pᵢ)⌉ = ⌈-log₂(nᵢ/n)⌉
+  </div>
+
+  <div class="info-box">
+    <div class="label">Shannon-Fano vs Huffman</div>
+    Shannon-Fano is <em>not</em> optimal — it may assign the same code length to characters with different frequencies, wasting bits. Huffman fixes this by building the tree bottom-up from actual frequencies.
+  </div>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Shannon-Fano Step-by-Step</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="sfPrev()" id="sf-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="sf-step-counter">Step 0</span>
+        <button class="btn primary" onclick="sfNext()" id="sf-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="sfReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="sf-input" value="BCCABBDDAECCBBAEDDCC" maxlength="100">
+        <button class="btn primary" onclick="sfInit()">BUILD</button>
+      </div>
+      <div id="sf-table-display"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="sf-explanation">Enter text and click BUILD to start.</div>
+      </div>
+      <div id="sf-final-display"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION: ARITHMETIC ====== -->
+<div class="section" id="sec-arithmetic">
+  <h2><span class="tag">Chapter 04</span>Arithmetic Coding</h2>
+
+  <p>Arithmetic coding encodes an <em>entire message</em> as a single fraction in [0, 1). The interval is progressively narrowed with each character. The final interval's lower bound (or a value within it) is the code.</p>
+
+  <p>Unlike Huffman, arithmetic coding can achieve compression arbitrarily close to entropy because it is not limited to integer-length codes per character.</p>
+
+  <div class="formula">
+    ℓᵢ = ℓᵢ₋₁ + δᵢ₋₁ · CumulativePr(S[i])
+    δᵢ = δᵢ₋₁ · Pr(S[i])
+  </div>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Arithmetic Encoder</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="arithPrev()" id="ar-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="ar-step-counter">Step 0</span>
+        <button class="btn primary" onclick="arithNext()" id="ar-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="arithReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="arith-input" value="BCCAB" maxlength="20" placeholder="Max 10 chars">
+        <button class="btn primary" onclick="arithInit()">ENCODE</button>
+      </div>
+      <div id="arith-prob-table"></div>
+      <div id="arith-interval-viz" class="interval-viz" style="display:none;margin-top:40px;"></div>
+      <div style="height:24px;"></div>
+      <div id="arith-range-display"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="arith-explanation">Enter text and click ENCODE to start.</div>
+      </div>
+      <div id="arith-code-display"></div>
+    </div>
+  </div>
+
+  <h3>Arithmetic Decoding</h3>
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Arithmetic Decoder</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="arithDecPrev()" id="ard-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="ard-step-counter">Step 0</span>
+        <button class="btn primary" onclick="arithDecNext()" id="ard-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="arithDecReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div id="ard-interval-viz" class="interval-viz" style="display:none;margin-top:40px;"></div>
+      <div style="height:24px;"></div>
+      <div id="ard-range-display"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="ard-explanation">Run the encoder first, then decode.</div>
+      </div>
+      <div id="ard-output-display"></div>
+    </div>
+  </div>
+
+  <h3>Converting to a Bit String</h3>
+  <p>The final interval has size Δ. We need <strong>α = 1 + ⌈-log₂Δ⌉</strong> bits. We use the first α bits of the binary representation of <strong>L + Δ/2</strong>, which is guaranteed to:</p>
+  <ul style="padding-left:20px; color:var(--text); margin:12px 0;">
+    <li style="margin:6px 0;">Fall within [L, L+Δ) — ensuring correctness</li>
+    <li style="margin:6px 0;">Be prefix-free — ensuring unique decodability</li>
+  </ul>
+  <div id="arith-bits-display"></div>
+</div>
+
+<!-- ====== SECTION: BWT ====== -->
+<div class="section" id="sec-bwt">
+  <h2><span class="tag">Chapter 05</span>Burrows-Wheeler Transform</h2>
+
+  <p>The BWT is a reversible permutation of the input string. It rearranges characters so that similar contexts cluster together, creating long runs that can be compressed effectively with RLE or MTF.</p>
+
+  <div class="info-box">
+    <div class="label">Key Properties</div>
+    • The BWT itself has the same entropy as the original string<br>
+    • It is fully reversible using the LF-Mapping<br>
+    • The string must end in a unique sentinel character <strong>$</strong> (lexicographically smallest)
+  </div>
+
+  <h3>Forward Transform</h3>
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">BWT Forward Transform</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="bwtPrev()" id="bwt-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="bwt-step-counter">Step 0</span>
+        <button class="btn primary" onclick="bwtNext()" id="bwt-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="bwtReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="bwt-input" value="banana" maxlength="12" placeholder="No $ needed">
+        <button class="btn primary" onclick="bwtInit()">TRANSFORM</button>
+      </div>
+      <div id="bwt-stage"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="bwt-explanation">Enter text and click TRANSFORM to start.</div>
+      </div>
+      <div id="bwt-result"></div>
+    </div>
+  </div>
+
+  <h3>LF-Mapping & Inverse Transform</h3>
+  <p>LF(i) maps a position in the last column (BWT) to its corresponding position in the first column. The formula is:</p>
+  <div class="formula">LF(i) = C(BWT[i]) + rank(i) − 1</div>
+  <p>Where <strong>C(c)</strong> = number of characters lexicographically smaller than c, and <strong>rank(i)</strong> = occurrences of BWT[i] in BWT[0..i].</p>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">BWT Inverse Transform (LF-Mapping)</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="bwtInvPrev()" id="bwtinv-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="bwtinv-step-counter">Step 0</span>
+        <button class="btn primary" onclick="bwtInvNext()" id="bwtinv-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="bwtInvReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div id="bwtinv-stage"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="bwtinv-explanation">Run the forward transform first.</div>
+      </div>
+      <div id="bwtinv-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION: RLE ====== -->
+<div class="section" id="sec-rle">
+  <h2><span class="tag">Chapter 06</span>Run-Length Encoding (RLBWT)</h2>
+
+  <p>A <strong>run</strong> is a maximal sequence of identical characters. RLE replaces runs longer than 2 characters with (character, length) pairs. After BWT, characters tend to cluster into long runs, making RLE particularly effective.</p>
+
+  <div class="formula">
+    Run of length ≤ 2: keep as-is
+    Run of length > 2: replace with char + count
+  </div>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Run-Length Encoding — Step by Step</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="rlePrev()" id="rle-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="rle-step-counter">Step 0</span>
+        <button class="btn primary" onclick="rleNext()" id="rle-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="rleReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="rle-input" value="spsssmmi$pissssiiii" maxlength="60">
+        <button class="btn primary" onclick="rleInit()">ENCODE</button>
+      </div>
+      <div id="rle-stage"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="rle-explanation">Enter a BWT string and click ENCODE.</div>
+      </div>
+      <div id="rle-result"></div>
+    </div>
+  </div>
+
+  <h3>RLE Decoding</h3>
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Run-Length Decoder</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="rleDecPrev()" id="rledec-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="rledec-step-counter">Step 0</span>
+        <button class="btn primary" onclick="rleDecNext()" id="rledec-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="rleDecReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div id="rledec-stage"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="rledec-explanation">Run the encoder first.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION: MTF ====== -->
+<div class="section" id="sec-mtf">
+  <h2><span class="tag">Chapter 07</span>Move-to-Front Encoding</h2>
+
+  <p>MTF encodes each character by its <em>position</em> in a maintained list. After encoding, that character moves to position 0. Since BWT clusters same characters, recently used characters stay near position 0, creating a distribution heavy with small numbers — which entropy coders compress well.</p>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">MTF Encoding — Step by Step</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="mtfPrev()" id="mtf-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="mtf-step-counter">Step 0</span>
+        <button class="btn primary" onclick="mtfNext()" id="mtf-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="mtfReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="mtf-input" value="spsssmmi$pissssiiii" maxlength="60">
+        <button class="btn primary" onclick="mtfInit()">ENCODE</button>
+      </div>
+      <div id="mtf-list-display" class="mtf-list"></div>
+      <div id="mtf-stage"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="mtf-explanation">Enter a BWT string and click ENCODE.</div>
+      </div>
+      <div id="mtf-result"></div>
+    </div>
+  </div>
+
+  <h3>MTF Decoding</h3>
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">MTF Decoder — Step by Step</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="mtfDecPrev()" id="mtfdec-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="mtfdec-step-counter">Step 0</span>
+        <button class="btn primary" onclick="mtfDecNext()" id="mtfdec-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="mtfDecReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div id="mtfdec-list-display" class="mtf-list"></div>
+      <div id="mtfdec-stage"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Step</div>
+        <div id="mtfdec-explanation">Run the encoder first.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION: PIPELINE ====== -->
+<div class="section" id="sec-pipeline">
+  <h2><span class="tag">Chapter 08</span>Full Compression Pipeline (bzip2)</h2>
+
+  <p>Real-world compressors like <strong>bzip2</strong> chain multiple transforms. Each stage reduces structure that the next stage can exploit. The full pipeline is:</p>
+
+  <div class="formula">
+    Input → BWT → MTF → (RLE of zeros) → Huffman → Compressed Output
+  </div>
+
+  <div class="anim-container">
+    <div class="anim-header">
+      <div class="anim-title">Full Pipeline — End to End</div>
+      <div class="anim-controls">
+        <button class="btn" onclick="pipePrev()" id="pipe-prev-btn" disabled>◀ PREV</button>
+        <span class="step-counter" id="pipe-step-counter">Step 0</span>
+        <button class="btn primary" onclick="pipeNext()" id="pipe-next-btn">NEXT ▶</button>
+        <button class="btn" onclick="pipeReset()">RESET</button>
+      </div>
+    </div>
+    <div class="anim-body">
+      <div class="input-row">
+        <span class="input-label">INPUT:</span>
+        <input type="text" id="pipe-input" value="mississippi" maxlength="20">
+        <button class="btn primary" onclick="pipeInit()">RUN PIPELINE</button>
+      </div>
+      <div id="pipe-stage"></div>
+      <div class="anim-explanation">
+        <div class="step-label">Current Stage</div>
+        <div id="pipe-explanation">Enter text and click RUN PIPELINE.</div>
+      </div>
+      <div id="pipe-comparison"></div>
+    </div>
+  </div>
+
+  <h3>Why the Order Matters</h3>
+  <div id="pipeline-entropy-comparison"></div>
+
+  <div class="info-box">
+    <div class="label">Compression Chain Logic</div>
+    • <strong>BWT</strong>: Groups similar contexts → creates runs of same characters<br>
+    • <strong>MTF</strong>: Turns runs into streams of small numbers (many zeros)<br>
+    • <strong>Huffman/Arithmetic</strong>: Encodes skewed distribution efficiently<br><br>
+    Applying MTF <em>without</em> BWT first yields worse results because characters don't cluster.
+  </div>
+</div>
+
+</main>
+
+<script>
+// =============================================
+// UTILITY FUNCTIONS
+// =============================================
+
+function getFrequencies(str) {
+  const freq = {};
+  for (const c of str) freq[c] = (freq[c] || 0) + 1;
+  return freq;
+}
+
+function calcEntropy(str) {
+  if (!str) return 0;
+  const freq = getFrequencies(str);
+  const n = str.length;
+  let H = 0;
+  for (const c in freq) {
+    const p = freq[c] / n;
+    H -= p * Math.log2(p);
+  }
+  return H;
+}
+
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function makeCharRow(str, highlights = {}, indices = true) {
+  let html = '<div class="char-row">';
+  for (let i = 0; i < str.length; i++) {
+    const cls = highlights[i] || '';
+    html += `<div class="char-cell">
+      <div class="char-box ${cls}">${str[i] === ' ' ? '&nbsp;' : str[i]}</div>
+      ${indices ? `<div class="char-idx">${i}</div>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function setStepCounter(id, current, total) {
+  document.getElementById(id).textContent = `Step ${current} / ${total}`;
+}
+
+function setBtn(id, disabled) {
+  document.getElementById(id).disabled = disabled;
+}
+
+// =============================================
+// SECTION 1: ENTROPY
+// =============================================
+
+function calcEntropyDisplay() {
+  const input = document.getElementById('entropy-input').value.toUpperCase();
+  if (!input) return;
+
+  const freq = getFrequencies(input);
+  const n = input.length;
+  const chars = Object.keys(freq).sort();
+  const H = calcEntropy(input);
+  const maxFreq = Math.max(...Object.values(freq));
+
+  // Freq bars
+  let barsHtml = '';
+  const colors = ['var(--accent)', 'var(--accent2)', 'var(--accent4)', 'var(--accent3)', '#b464ff', '#ff9d00'];
+  chars.forEach((c, i) => {
+    const pct = (freq[c] / maxFreq) * 100;
+    barsHtml += `<div class="freq-bar-wrap">
+      <div class="freq-bar" style="height:${pct}%; background:${colors[i % colors.length]}; width:100%;">
+        <span class="freq-bar-val">${freq[c]}</span>
+      </div>
+      <div class="freq-bar-label">${c}</div>
+    </div>`;
+  });
+  document.getElementById('entropy-freq-display').innerHTML = barsHtml;
+
+  // Table
+  let tableHtml = '<table><tr><th>Char</th><th>Freq (nᵢ)</th><th>Prob (pᵢ)</th><th>-log₂(pᵢ)</th><th>pᵢ·(-log₂pᵢ)</th></tr>';
+  chars.forEach(c => {
+    const p = freq[c] / n;
+    const contrib = -p * Math.log2(p);
+    tableHtml += `<tr><td><strong>${c}</strong></td><td>${freq[c]}</td><td>${p.toFixed(4)}</td><td>${(-Math.log2(p)).toFixed(4)}</td><td>${contrib.toFixed(4)}</td></tr>`;
+  });
+  tableHtml += `<tr><td colspan="4" style="color:var(--accent);font-weight:700;">H (Entropy)</td><td style="color:var(--accent);font-weight:700;">${H.toFixed(4)} bits/char</td></tr>`;
+  tableHtml += '</table>';
+  document.getElementById('entropy-table-wrap').innerHTML = tableHtml;
+
+  // Stats
+  const asciiTotal = n * 8;
+  const fixedLen = Math.ceil(Math.log2(chars.length || 1));
+  const fixedTotal = n * fixedLen;
+  document.getElementById('entropy-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-label">String Length</div><div class="stat-value">${n}</div><div class="stat-unit">characters</div></div>
+    <div class="stat-box"><div class="stat-label">Alphabet Size</div><div class="stat-value">${chars.length}</div><div class="stat-unit">distinct chars</div></div>
+    <div class="stat-box"><div class="stat-label">Entropy</div><div class="stat-value">${H.toFixed(3)}</div><div class="stat-unit">bits/char</div></div>
+    <div class="stat-box"><div class="stat-label">ASCII Cost</div><div class="stat-value">${asciiTotal}</div><div class="stat-unit">bits total (8 bits/char)</div></div>
+    <div class="stat-box"><div class="stat-label">Fixed-Length</div><div class="stat-value">${fixedTotal}</div><div class="stat-unit">bits (${fixedLen} bits/char)</div></div>
+  `;
+
+  // Comparison
+  document.getElementById('encoding-comparison').innerHTML = `
+    <table>
+      <tr><th>Scheme</th><th>Bits/Char</th><th>Total Bits</th><th>vs Entropy</th></tr>
+      <tr><td>ASCII</td><td>8.000</td><td>${n*8}</td><td>+${((8-H)/H*100).toFixed(1)}% overhead</td></tr>
+      <tr><td>Fixed-Length (⌈log₂σ⌉)</td><td>${fixedLen}.000</td><td>${n*fixedLen}</td><td>+${((fixedLen-H)/H*100).toFixed(1)}% overhead</td></tr>
+      <tr style="color:var(--accent)"><td>Entropy (theoretical)</td><td>${H.toFixed(3)}</td><td>${(n*H).toFixed(1)}</td><td>baseline</td></tr>
+    </table>`;
+}
+
+// =============================================
+// SECTION 2: HUFFMAN
+// =============================================
+
+let huffState = null;
+
+function huffmanInit() {
+  let text = document.getElementById('huffman-input').value.toUpperCase();
+  if (!text) return;
+  // Remove any existing $
+  text = text.replace(/\$/g, '');
+
+  const freq = getFrequencies(text);
+  const chars = Object.keys(freq).sort();
+
+  // Build nodes
+  let nodes = chars.map(c => ({ char: c, freq: freq[c], left: null, right: null, id: c }));
+
+  // Generate all merge steps
+  const steps = [];
+  let heap = [...nodes].sort((a, b) => a.freq - b.freq || a.id.localeCompare(b.id));
+
+  steps.push({ type: 'init', heap: deepClone(heap), explanation: `Initialized min-heap with ${chars.length} nodes, one per distinct character.` });
+
+  let counter = 0;
+  while (heap.length > 1) {
+    const x = heap.shift();
+    const y = heap.shift();
+    steps.push({ type: 'select', heap: deepClone(heap), x: deepClone(x), y: deepClone(y), explanation: `Selected two minimum nodes: "${nodeLabel(x)}" (freq=${x.freq}) and "${nodeLabel(y)}" (freq=${y.freq}).` });
+
+    const z = { char: null, freq: x.freq + y.freq, left: x, right: y, id: `_${counter++}` };
+    heap.push(z);
+    heap.sort((a, b) => a.freq - b.freq || a.id.localeCompare(b.id));
+    steps.push({ type: 'merge', heap: deepClone(heap), z: deepClone(z), explanation: `Merged into new node (freq=${z.freq}). Heap now has ${heap.length} node(s).` });
+  }
+
+  // Build codes
+  const root = heap[0];
+  const codes = {};
+  function buildCodes(node, code) {
+    if (!node) return;
+    if (!node.left && !node.right) { codes[node.char] = code || '0'; return; }
+    buildCodes(node.left, code + '0');
+    buildCodes(node.right, code + '1');
+  }
+  buildCodes(root, '');
+
+  // Encode
+  let encoded = '';
+  for (const c of text) encoded += codes[c];
+  const H = calcEntropy(text);
+  const avgBits = encoded.length / text.length;
+
+  steps.push({ type: 'codes', heap: [deepClone(root)], codes, encoded, text, H, avgBits, explanation: `Tree complete! Generated prefix-free codes. Average: ${avgBits.toFixed(3)} bits/char vs entropy ${H.toFixed(3)}.` });
+
+  huffState = { steps, step: 0, codes, encoded, text, root: deepClone(root) };
+  huffmanRender();
+
+  // Setup decoder
+  huffmanDecodeInit();
+}
+
+function nodeLabel(n) {
+  return n.char || `(${n.freq})`;
+}
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function huffmanNext() {
+  if (!huffState || huffState.step >= huffState.steps.length - 1) return;
+  huffState.step++;
+  huffmanRender();
+}
+
+function huffmanPrev() {
+  if (!huffState || huffState.step <= 0) return;
+  huffState.step--;
+  huffmanRender();
+}
+
+function huffmanReset() {
+  if (!huffState) return;
+  huffState.step = 0;
+  huffmanRender();
+}
+
+function huffmanRender() {
+  const { steps, step } = huffState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('huf-step-counter', step, total);
+  setBtn('huf-prev-btn', step === 0);
+  setBtn('huf-next-btn', step === total);
+
+  // Progress dots
+  let dots = '';
+  for (let i = 0; i <= total; i++) {
+    const cls = i < step ? 'done' : i === step ? 'current' : '';
+    dots += `<div class="dot ${cls}"></div>`;
+  }
+  document.getElementById('huf-progress').innerHTML = dots;
+
+  // Heap display
+  let heapHtml = '';
+  (s.heap || []).forEach(n => {
+    const cls = s.x && n.id === s.x.id ? 'selected' : s.y && n.id === s.y.id ? 'selected' : s.z && n.id === s.z.id ? 'merged' : '';
+    heapHtml += `<div class="heap-node ${cls}">
+      <span class="node-char">${n.char || '◆'}</span>
+      <span class="node-freq">${n.freq}</span>
+    </div>`;
+  });
+  document.getElementById('huf-heap-display').innerHTML = heapHtml;
+
+  document.getElementById('huf-explanation').textContent = s.explanation;
+
+  // Tree display (simple SVG for final step)
+  if (s.type === 'codes') {
+    document.getElementById('huf-tree-display').innerHTML = renderHuffmanTree(huffState.root);
+    // Codes table
+    let codeHtml = '<div class="code-table"><div class="code-row"><div class="code-cell header">Char</div><div class="code-cell header">Freq</div><div class="code-cell header">Code</div></div>';
+    const freq = getFrequencies(huffState.text);
+    Object.entries(s.codes).sort().forEach(([c, code]) => {
+      codeHtml += `<div class="code-row"><div class="code-cell char">${c}</div><div class="code-cell freq">${freq[c]}</div><div class="code-cell code">${code}</div></div>`;
+    });
+    codeHtml += '</div>';
+    document.getElementById('huf-code-display').innerHTML = codeHtml;
+
+    // Encoded bits
+    let bitsHtml = '<div style="margin-top:12px;"><div style="color:var(--text-dim);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Encoded output</div><div class="encoded-output">';
+    let i = 0;
+    for (const c of huffState.text) {
+      const code = s.codes[c];
+      bitsHtml += `<span class="bit-group" title="${c}">`;
+      for (const b of code) {
+        bitsHtml += `<span class="bit b${b}">${b}</span>`;
+      }
+      bitsHtml += '</span>';
+    }
+    bitsHtml += `</div><div style="color:var(--text-dim);font-size:12px;margin-top:6px;">${s.encoded.length} bits total · ${s.avgBits.toFixed(3)} bits/char</div></div>`;
+    document.getElementById('huf-encoded-display').innerHTML = bitsHtml;
+  } else {
+    document.getElementById('huf-tree-display').innerHTML = '';
+    document.getElementById('huf-code-display').innerHTML = '';
+    document.getElementById('huf-encoded-display').innerHTML = '';
+  }
+}
+
+function renderHuffmanTree(root) {
+  if (!root) return '';
+  // BFS to get layout
+  const W = 700, H = 200;
+  const nodes = [];
+  const edges = [];
+
+  function layout(node, x, y, spread) {
+    if (!node) return;
+    nodes.push({ node, x, y });
+    if (node.left) {
+      edges.push({ x1: x, y1: y, x2: x - spread, y2: y + 60 });
+      layout(node.left, x - spread, y + 60, spread / 2);
+    }
+    if (node.right) {
+      edges.push({ x1: x, y1: y, x2: x + spread, y2: y + 60 });
+      layout(node.right, x + spread, y + 60, spread / 2);
+    }
+  }
+
+  // Calculate tree depth
+  function depth(node) {
+    if (!node) return 0;
+    return 1 + Math.max(depth(node.left), depth(node.right));
+  }
+  const d = depth(root);
+  const treeH = d * 65 + 40;
+
+  layout(root, W/2, 30, W / Math.pow(2, 2));
+
+  let svg = `<svg viewBox="0 0 ${W} ${treeH}" class="tree-svg" style="max-height:${treeH}px;">`;
+
+  edges.forEach(e => {
+    svg += `<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" stroke="var(--border)" stroke-width="1.5"/>`;
+  });
+
+  nodes.forEach(({ node, x, y }) => {
+    const isLeaf = !node.left && !node.right;
+    const color = isLeaf ? 'var(--accent)' : 'var(--accent4)';
+    svg += `<circle cx="${x}" cy="${y}" r="18" fill="var(--surface2)" stroke="${color}" stroke-width="1.5"/>`;
+    if (isLeaf) {
+      svg += `<text x="${x}" y="${y-3}" text-anchor="middle" font-family="monospace" font-size="12" fill="var(--accent)" font-weight="bold">${node.char}</text>`;
+      svg += `<text x="${x}" y="${y+10}" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--text-dim)">${node.freq}</text>`;
+    } else {
+      svg += `<text x="${x}" y="${y+5}" text-anchor="middle" font-family="monospace" font-size="11" fill="var(--accent4)">${node.freq}</text>`;
+    }
+  });
+
+  // Edge labels (0 left, 1 right)
+  edges.forEach((e, i) => {
+    const midX = (e.x1 + e.x2) / 2;
+    const midY = (e.y1 + e.y2) / 2;
+    const bit = e.x2 < e.x1 ? '0' : '1';
+    const col = bit === '0' ? 'var(--accent)' : 'var(--accent4)';
+    svg += `<text x="${midX}" y="${midY}" text-anchor="middle" font-family="monospace" font-size="11" fill="${col}">${bit}</text>`;
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+// Huffman decoder
+let huffDecState = null;
+
+function huffmanDecodeInit() {
+  if (!huffState || !huffState.codes) return;
+  const { codes, encoded, text, root } = huffState;
+
+  const steps = [];
+  steps.push({ type: 'init', bitPos: -1, decoded: '', currentNode: null, explanation: 'Starting decode. We traverse the Huffman tree bit by bit.' });
+
+  let decoded = '';
+  let node = root;
+  for (let i = 0; i < encoded.length; i++) {
+    const bit = encoded[i];
+    const prevNode = node;
+    node = bit === '0' ? node.left : node.right;
+    if (!node.left && !node.right) {
+      decoded += node.char;
+      steps.push({ type: 'decode', bitPos: i, bit, decoded, char: node.char, explanation: `Bit '${bit}' → reached leaf "${node.char}". Output "${node.char}". Reset to root.` });
+      node = root;
+    } else {
+      steps.push({ type: 'traverse', bitPos: i, bit, decoded, explanation: `Bit '${bit}' → go ${bit==='0'?'left':'right'}. Not a leaf yet. Continue.` });
+    }
+  }
+  steps.push({ type: 'done', bitPos: encoded.length, decoded, explanation: `Decoding complete! Recovered: "${decoded}"` });
+
+  huffDecState = { steps, step: 0, encoded, root };
+  huffmanDecodeReset();
+}
+
+function huffmanDecodeNext() {
+  if (!huffDecState || huffDecState.step >= huffDecState.steps.length - 1) return;
+  huffDecState.step++;
+  huffmanDecodeRender();
+}
+
+function huffmanDecodePrev() {
+  if (!huffDecState || huffDecState.step <= 0) return;
+  huffDecState.step--;
+  huffmanDecodeRender();
+}
+
+function huffmanDecodeReset() {
+  if (!huffDecState) return;
+  huffDecState.step = 0;
+  huffmanDecodeRender();
+}
+
+function huffmanDecodeRender() {
+  if (!huffDecState) return;
+  const { steps, step, encoded } = huffDecState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('hdec-step-counter', step, total);
+  setBtn('hdec-prev-btn', step === 0);
+  setBtn('hdec-next-btn', step === total);
+
+  // Bits display
+  let bitsHtml = '';
+  for (let i = 0; i < encoded.length; i++) {
+    const b = encoded[i];
+    const active = i === s.bitPos ? 'highlight-gold' : i < s.bitPos ? 'highlight-green' : '';
+    bitsHtml += `<span class="char-box ${active}" style="width:22px;height:22px;font-size:12px;">${b}</span>`;
+  }
+  document.getElementById('hdec-bits-display').innerHTML = bitsHtml;
+  document.getElementById('hdec-explanation').textContent = s.explanation;
+
+  let outHtml = '';
+  if (s.decoded) {
+    outHtml = `<div style="margin-top:12px;"><div class="input-label" style="margin-bottom:6px;">Decoded so far:</div>${makeCharRow(s.decoded, {}, false)}</div>`;
+  }
+  document.getElementById('hdec-output-display').innerHTML = outHtml;
+}
+
+// =============================================
+// SECTION 3: SHANNON-FANO
+// =============================================
+
+let sfState = null;
+
+function sfInit() {
+  const text = document.getElementById('sf-input').value.toUpperCase();
+  if (!text) return;
+
+  const freq = getFrequencies(text);
+  const n = text.length;
+  const chars = Object.keys(freq).sort();
+
+  const steps = [];
+  steps.push({ type: 'freq', freq, n, explanation: 'Step 1: Compute character frequencies and probabilities.' });
+
+  // Compute code lengths
+  const lengths = {};
+  chars.forEach(c => {
+    const p = freq[c] / n;
+    lengths[c] = Math.ceil(-Math.log2(p));
+  });
+  steps.push({ type: 'lengths', lengths, explanation: 'Step 2: Assign code lengths ℓᵢ = ⌈-log₂(pᵢ)⌉ to each character.' });
+
+  // Sort by length, then lexicographically
+  const sorted = [...chars].sort((a, b) => lengths[a] - lengths[b] || a.localeCompare(b));
+
+  // Assign codes prefix-free
+  const codes = {};
+  const usedPrefixes = new Set();
+
+  function nextAvailable(len) {
+    for (let i = 0; i < Math.pow(2, len); i++) {
+      const code = i.toString(2).padStart(len, '0');
+      // Check no shorter code is a prefix
+      let ok = true;
+      for (const used of usedPrefixes) {
+        if (code.startsWith(used) || used.startsWith(code)) { ok = false; break; }
+      }
+      if (ok) return code;
+    }
+    return null;
+  }
+
+  sorted.forEach(c => {
+    const code = nextAvailable(lengths[c]);
+    codes[c] = code;
+    if (code) usedPrefixes.add(code);
+    steps.push({ type: 'assign', char: c, code, lengths, codes: { ...codes }, explanation: `Assign "${c}" (length ${lengths[c]}): code = ${code}. Mark prefix ${code} as used.` });
+  });
+
+  // Final
+  let totalBits = 0;
+  chars.forEach(c => { totalBits += freq[c] * (codes[c] || '').length; });
+  const H = calcEntropy(text);
+  steps.push({ type: 'final', codes, totalBits, avgBits: totalBits / n, H, freq, n, explanation: `Done! Average: ${(totalBits/n).toFixed(3)} bits/char vs entropy ${H.toFixed(3)}.` });
+
+  sfState = { steps, step: 0, codes, freq, text };
+  sfReset();
+}
+
+function sfNext() {
+  if (!sfState || sfState.step >= sfState.steps.length - 1) return;
+  sfState.step++;
+  sfRender();
+}
+
+function sfPrev() {
+  if (!sfState || sfState.step <= 0) return;
+  sfState.step--;
+  sfRender();
+}
+
+function sfReset() {
+  if (!sfState) return;
+  sfState.step = 0;
+  sfRender();
+}
+
+function sfRender() {
+  const { steps, step } = sfState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('sf-step-counter', step, total);
+  setBtn('sf-prev-btn', step === 0);
+  setBtn('sf-next-btn', step === total);
+  document.getElementById('sf-explanation').textContent = s.explanation;
+
+  let tableHtml = '<table><tr><th>Char</th><th>Freq</th><th>Prob</th><th>-log₂p</th><th>Length ℓ</th><th>Code</th></tr>';
+  const chars = Object.keys(s.freq || sfState.freq).sort();
+  chars.forEach(c => {
+    const f = (s.freq || sfState.freq)[c];
+    const n = sfState.text.length;
+    const p = f / n;
+    const l = s.lengths ? s.lengths[c] : '—';
+    const code = s.codes ? (s.codes[c] || '—') : '—';
+    const active = s.char === c ? 'row-active' : '';
+    tableHtml += `<tr class="${active}"><td><strong>${c}</strong></td><td>${f}</td><td>${p.toFixed(4)}</td><td>${(-Math.log2(p)).toFixed(3)}</td><td>${l}</td><td style="color:var(--accent4);letter-spacing:2px;">${code}</td></tr>`;
+  });
+  tableHtml += '</table>';
+  document.getElementById('sf-table-display').innerHTML = tableHtml;
+
+  if (s.type === 'final') {
+    document.getElementById('sf-final-display').innerHTML = `<div class="stats-row">
+      <div class="stat-box"><div class="stat-label">Total Bits</div><div class="stat-value">${s.totalBits}</div><div class="stat-unit">for message</div></div>
+      <div class="stat-box"><div class="stat-label">Avg Bits/Char</div><div class="stat-value">${s.avgBits.toFixed(3)}</div><div class="stat-unit">Shannon-Fano</div></div>
+      <div class="stat-box"><div class="stat-label">Entropy</div><div class="stat-value">${s.H.toFixed(3)}</div><div class="stat-unit">theoretical minimum</div></div>
+    </div>`;
+  } else {
+    document.getElementById('sf-final-display').innerHTML = '';
+  }
+}
+
+// =============================================
+// SECTION 4: ARITHMETIC CODING
+// =============================================
+
+let arithState = null;
+let arithDecState = null;
+
+function arithInit() {
+  let text = document.getElementById('arith-input').value.toUpperCase().replace(/[^A-Z]/g, '');
+  if (!text) return;
+  text = text.slice(0, 10);
+
+  const freq = getFrequencies(text);
+  const n = text.length;
+  const chars = Object.keys(freq).sort();
+  const totalChars = chars.length;
+
+  // Build probability table
+  const probs = {};
+  const cumProbs = {};
+  chars.forEach(c => { probs[c] = freq[c] / n; });
+  let cum = 0;
+  chars.forEach(c => { cumProbs[c] = cum; cum += probs[c]; });
+
+  // Show prob table
+  let probHtml = '<table><tr><th>Char</th><th>Prob</th><th>CumulativePr</th><th>Interval</th></tr>';
+  chars.forEach(c => {
+    probHtml += `<tr><td><strong>${c}</strong></td><td>${probs[c].toFixed(4)}</td><td>${cumProbs[c].toFixed(4)}</td><td>[${cumProbs[c].toFixed(4)}, ${(cumProbs[c]+probs[c]).toFixed(4)})</td></tr>`;
+  });
+  probHtml += '</table>';
+  document.getElementById('arith-prob-table').innerHTML = probHtml;
+
+  // Build steps
+  const steps = [];
+  let low = 0, high = 1;
+  steps.push({ low, high, charIdx: -1, explanation: 'Initial interval: [0.0, 1.0). The entire real line [0,1] is divided by character probabilities.' });
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const range = high - low;
+    const newLow = low + range * cumProbs[c];
+    const newHigh = newLow + range * probs[c];
+    low = newLow;
+    high = newHigh;
+    steps.push({ low, high, char: c, charIdx: i, range, probs, cumProbs, chars, text, explanation: `Reading '${c}': range=${range.toFixed(6)}, new interval=[${low.toFixed(6)}, ${high.toFixed(6)})` });
+  }
+
+  const finalLow = steps[steps.length-1].low;
+  const delta = steps[steps.length-1].high - finalLow;
+  const alpha = 1 + Math.ceil(-Math.log2(delta));
+  const midVal = finalLow + delta / 2;
+  // Get binary representation
+  let binStr = '';
+  let val = midVal;
+  for (let i = 0; i < alpha + 4; i++) {
+    val *= 2;
+    binStr += Math.floor(val) > 0 ? '1' : '0';
+    val = val % 1;
+  }
+  const code = binStr.slice(0, alpha);
+
+  steps.push({ low: finalLow, high: finalLow + delta, charIdx: text.length, finalCode: finalLow.toFixed(8), delta, alpha, code, probs, cumProbs, chars, text, explanation: `Encoding complete! Code = ${finalLow.toFixed(8)}. Need α=1+⌈-log₂(${delta.toFixed(6)})⌉=${alpha} bits. Binary code: ${code}` });
+
+  arithState = { steps, step: 0, probs, cumProbs, chars, text, finalCode: finalLow, delta, alpha, code };
+
+  document.getElementById('arith-interval-viz').style.display = 'block';
+  arithReset();
+  setupArithDec();
+}
+
+function arithNext() {
+  if (!arithState || arithState.step >= arithState.steps.length - 1) return;
+  arithState.step++;
+  arithRender();
+}
+
+function arithPrev() {
+  if (!arithState || arithState.step <= 0) return;
+  arithState.step--;
+  arithRender();
+}
+
+function arithReset() {
+  if (!arithState) return;
+  arithState.step = 0;
+  arithRender();
+}
+
+function arithRender() {
+  const { steps, step } = arithState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('ar-step-counter', step, total);
+  setBtn('ar-prev-btn', step === 0);
+  setBtn('ar-next-btn', step === total);
+  document.getElementById('arith-explanation').textContent = s.explanation;
+
+  // Interval viz
+  renderIntervalViz('arith-interval-viz', s.low, s.high, s.chars || arithState.chars, s.probs || arithState.probs, s.cumProbs || arithState.cumProbs, s.low);
+
+  // Range display
+  document.getElementById('arith-range-display').innerHTML = `
+    <div class="info-box">
+      <div class="label">Current Interval</div>
+      low = <strong style="color:var(--accent)">${s.low.toFixed(8)}</strong> &nbsp;&nbsp;
+      high = <strong style="color:var(--accent2)">${s.high.toFixed(8)}</strong> &nbsp;&nbsp;
+      range = <strong style="color:var(--accent4)">${(s.high - s.low).toFixed(8)}</strong>
+    </div>`;
+
+  if (s.finalCode !== undefined) {
+    document.getElementById('arith-code-display').innerHTML = `
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">Final Code (decimal)</div><div class="stat-value" style="font-size:14px;">${s.finalCode}</div></div>
+        <div class="stat-box"><div class="stat-label">Bits Needed (α)</div><div class="stat-value">${s.alpha}</div><div class="stat-unit">1+⌈-log₂Δ⌉</div></div>
+        <div class="stat-box"><div class="stat-label">Binary Code</div><div class="stat-value" style="font-size:14px;letter-spacing:3px;">${s.code}</div></div>
+      </div>`;
+    document.getElementById('arith-bits-display').innerHTML = `
+      <div class="info-box" style="border-color:var(--accent4)">
+        <div class="label">Bit String Proof</div>
+        Δ = ${s.delta.toFixed(8)}<br>
+        α = 1 + ⌈-log₂(${s.delta.toFixed(6)})⌉ = 1 + ${Math.ceil(-Math.log2(s.delta))} = ${s.alpha}<br>
+        Midpoint = ${s.low.toFixed(8)} + ${s.delta.toFixed(8)}/2 = ${(s.low+s.delta/2).toFixed(8)}<br>
+        First ${s.alpha} bits of binary midpoint = <strong style="color:var(--accent4);letter-spacing:2px;">${s.code}</strong>
+      </div>`;
+  } else {
+    document.getElementById('arith-code-display').innerHTML = '';
+  }
+}
+
+function renderIntervalViz(containerId, low, high, chars, probs, cumProbs, pointer) {
+  const viz = document.getElementById(containerId);
+  const segColors = ['seg-a', 'seg-b', 'seg-c', 'seg-d', 'seg-e'];
+
+  // Map [low,high] to the displayed interval
+  // Show proportional slices within [low, high]
+  let segsHtml = '';
+  chars.forEach((c, i) => {
+    const segLow = low + (high - low) * cumProbs[c];
+    const segHigh = segLow + (high - low) * probs[c];
+    const leftPct = (cumProbs[c]) * 100;
+    const widthPct = probs[c] * 100;
+    if (widthPct < 1) return;
+    segsHtml += `<div class="interval-segment ${segColors[i % segColors.length]}" style="left:${leftPct}%;width:${widthPct}%;">
+      ${widthPct > 6 ? c : ''}
+    </div>`;
+  });
+
+  viz.innerHTML = segsHtml;
+}
+
+// Arithmetic Decoder
+function setupArithDec() {
+  if (!arithState) return;
+  const { probs, cumProbs, chars, text, finalCode, delta } = arithState;
+  const code = finalCode + delta / 2;
+
+  const steps = [];
+  steps.push({ code, decoded: '', explanation: `Starting decode with code = ${code.toFixed(8)}. Find which segment it falls in.` });
+
+  let curCode = code;
+  let decoded = '';
+  for (let i = 0; i < text.length; i++) {
+    // Find character
+    let found = chars[0];
+    for (const c of chars) {
+      if (cumProbs[c] <= curCode) found = c;
+    }
+    decoded += found;
+    const newCode = (curCode - cumProbs[found]) / probs[found];
+    steps.push({ code: curCode, nextCode: newCode, char: found, decoded, charIdx: i, explanation: `code=${curCode.toFixed(8)} falls in segment '${found}' ([${cumProbs[found].toFixed(4)}, ${(cumProbs[found]+probs[found]).toFixed(4)})). Output '${found}'. Normalize: code=(${curCode.toFixed(6)}-${cumProbs[found].toFixed(4)})/${probs[found].toFixed(4)}=${newCode.toFixed(8)}` });
+    curCode = newCode;
+  }
+  steps.push({ code: curCode, decoded, done: true, explanation: `Decoding complete! Recovered: "${decoded}"` });
+
+  arithDecState = { steps, step: 0, probs, cumProbs, chars, text };
+  document.getElementById('ard-interval-viz').style.display = 'block';
+  arithDecReset();
+}
+
+function arithDecNext() {
+  if (!arithDecState || arithDecState.step >= arithDecState.steps.length - 1) return;
+  arithDecState.step++;
+  arithDecRender();
+}
+
+function arithDecPrev() {
+  if (!arithDecState || arithDecState.step <= 0) return;
+  arithDecState.step--;
+  arithDecRender();
+}
+
+function arithDecReset() {
+  if (!arithDecState) return;
+  arithDecState.step = 0;
+  arithDecRender();
+}
+
+function arithDecRender() {
+  if (!arithDecState) return;
+  const { steps, step, probs, cumProbs, chars } = arithDecState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('ard-step-counter', step, total);
+  setBtn('ard-prev-btn', step === 0);
+  setBtn('ard-next-btn', step === total);
+  document.getElementById('ard-explanation').textContent = s.explanation;
+
+  renderIntervalViz('ard-interval-viz', 0, 1, chars, probs, cumProbs, s.code);
+
+  // Show code marker
+  const viz = document.getElementById('ard-interval-viz');
+  const marker = document.createElement('div');
+  marker.className = 'interval-marker';
+  marker.style.left = `${s.code * 100}%`;
+  marker.setAttribute('data-val', s.code.toFixed(6));
+  viz.appendChild(marker);
+
+  document.getElementById('ard-range-display').innerHTML = `
+    <div class="info-box">
+      <div class="label">Current Code Value</div>
+      code = <strong style="color:var(--accent3)">${s.code.toFixed(8)}</strong>
+      ${s.char ? `&nbsp;&nbsp; → Falls in segment <strong style="color:var(--accent)">'${s.char}'</strong>` : ''}
+    </div>`;
+
+  let outHtml = '';
+  if (s.decoded) {
+    outHtml = `<div style="margin-top:12px;"><div class="input-label" style="margin-bottom:6px;">Decoded so far:</div>${makeCharRow(s.decoded, {}, false)}</div>`;
+  }
+  document.getElementById('ard-output-display').innerHTML = outHtml;
+}
+
+// =============================================
+// SECTION 5: BWT
+// =============================================
+
+let bwtState = null;
+let bwtInvState = null;
+
+function bwtInit() {
+  let text = document.getElementById('bwt-input').value.toLowerCase().replace(/\$/g, '');
+  if (!text) return;
+  text = text + '$';
+
+  const n = text.length;
+  const steps = [];
+
+  // Step 1: show original
+  steps.push({ type: 'original', text, explanation: `Original string: "${text}" (appended sentinel '$'). n=${n}.` });
+
+  // Step 2: generate all rotations
+  const rotations = [];
+  for (let i = 0; i < n; i++) {
+    rotations.push({ suffix: text.slice(i) + text.slice(0, i), startIdx: i });
+  }
+  steps.push({ type: 'rotations', rotations: deepClone(rotations), sorted: false, explanation: `Generated all ${n} circular rotations (cyclic shifts).` });
+
+  // Step 3: sort
+  const sorted = [...rotations].sort((a, b) => a.suffix.localeCompare(b.suffix));
+  steps.push({ type: 'rotations', rotations: deepClone(sorted), sorted: true, explanation: `Sorted all ${n} rotations lexicographically. First column (F) and last column (L=BWT) are now defined.` });
+
+  // Step 4: extract BWT
+  const bwt = sorted.map(r => r.suffix[n - 1]).join('');
+  const sa = sorted.map(r => r.startIdx);
+  steps.push({ type: 'bwt', rotations: deepClone(sorted), bwt, sa, explanation: `Extracted BWT = last column = "${bwt}". Suffix Array SA = [${sa.join(', ')}].` });
+
+  bwtState = { steps, step: 0, text, bwt, sa, sorted };
+  bwtReset();
+  bwtInvInit();
+}
+
+function bwtNext() {
+  if (!bwtState || bwtState.step >= bwtState.steps.length - 1) return;
+  bwtState.step++;
+  bwtRender();
+}
+
+function bwtPrev() {
+  if (!bwtState || bwtState.step <= 0) return;
+  bwtState.step--;
+  bwtRender();
+}
+
+function bwtReset() {
+  if (!bwtState) return;
+  bwtState.step = 0;
+  bwtRender();
+}
+
+function bwtRender() {
+  const { steps, step } = bwtState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('bwt-step-counter', step, total);
+  setBtn('bwt-prev-btn', step === 0);
+  setBtn('bwt-next-btn', step === total);
+  document.getElementById('bwt-explanation').textContent = s.explanation;
+
+  let html = '';
+  if (s.type === 'original') {
+    html = makeCharRow(s.text, {}, true);
+  } else if (s.type === 'rotations') {
+    html = '<div class="matrix-container"><div style="color:var(--text-dim);font-size:11px;margin-bottom:8px;">Rotations ' + (s.sorted ? '(SORTED)' : '(unsorted)') + ':</div>';
+    s.rotations.forEach((r, i) => {
+      html += `<div class="matrix-row"><span class="row-idx">${i}:</span>`;
+      for (let j = 0; j < r.suffix.length; j++) {
+        const isFirst = j === 0;
+        const isLast = j === r.suffix.length - 1;
+        const cls = isFirst && s.sorted ? 'first-col' : isLast && s.sorted ? 'last-col' : '';
+        html += `<span class="mchar ${cls}">${r.suffix[j]}</span>`;
+      }
+      html += `<span class="row-label">SA[${i}]=${r.startIdx}</span></div>`;
+    });
+    html += '</div>';
+  } else if (s.type === 'bwt') {
+    html = '<div class="matrix-container">';
+    s.rotations.forEach((r, i) => {
+      html += `<div class="matrix-row"><span class="row-idx">${i}:</span>`;
+      for (let j = 0; j < r.suffix.length; j++) {
+        const isFirst = j === 0;
+        const isLast = j === r.suffix.length - 1;
+        const cls = isFirst ? 'first-col' : isLast ? 'last-col' : '';
+        html += `<span class="mchar ${cls}">${r.suffix[j]}</span>`;
+      }
+      html += `<span class="row-label">BWT[${i}]=${r.suffix[r.suffix.length-1]}</span></div>`;
+    });
+    html += '</div>';
+    document.getElementById('bwt-result').innerHTML = `
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">BWT Output</div><div class="stat-value" style="font-size:18px;letter-spacing:4px;">${s.bwt}</div></div>
+        <div class="stat-box"><div class="stat-label">Suffix Array</div><div class="stat-value" style="font-size:14px;">[${s.sa.join(', ')}]</div></div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('bwt-stage').innerHTML = html;
+  if (s.type !== 'bwt') document.getElementById('bwt-result').innerHTML = '';
+}
+
+// BWT Inverse
+function bwtInvInit() {
+  if (!bwtState || !bwtState.bwt) return;
+  const bwt = bwtState.bwt;
+  const n = bwt.length;
+
+  // Compute C and rank
+  const chars = [...new Set(bwt.split(''))].sort();
+  const C = {};
+  let cnt = 0;
+  const sortedBwt = [...bwt].sort();
+  chars.forEach(c => {
+    C[c] = sortedBwt.indexOf(c);
+  });
+
+  // Compute rank array
+  const R = [];
+  const seen = {};
+  for (let i = 0; i < n; i++) {
+    const c = bwt[i];
+    seen[c] = (seen[c] || 0) + 1;
+    R.push(seen[c]);
+  }
+
+  // LF mapping
+  const LF = [];
+  for (let i = 0; i < n; i++) {
+    LF.push(C[bwt[i]] + R[i] - 1);
+  }
+
+  // Find $ position
+  const dollarPos = bwt.indexOf('$');
+  const steps = [];
+  steps.push({ type: 'init', bwt, C, R, LF, dollarPos, explanation: `BWT = "${bwt}". Computed C (character counts), rank array R, and LF mapping.` });
+
+  // Reconstruct
+  let x = dollarPos;
+  let result = new Array(n).fill('');
+  for (let i = n - 1; i >= 0; i--) {
+    result[i] = bwt[x];
+    const nextX = LF[x];
+    steps.push({ type: 'step', bwt, C, R, LF, x, nextX, char: bwt[x], pos: i, result: [...result], explanation: `i=${i}: BWT[${x}]='${bwt[x]}' → S[${i}]='${bwt[x]}'. LF(${x})=C('${bwt[x]}')+R[${x}]-1=${C[bwt[x]]}+${R[x]}-1=${LF[x]}. Move to x=${nextX}.` });
+    x = nextX;
+  }
+
+  const original = result.join('');
+  steps.push({ type: 'done', result, original, bwt, explanation: `Reconstruction complete! Original string: "${original}"` });
+
+  bwtInvState = { steps, step: 0, bwt, C, R, LF };
+  bwtInvReset();
+}
+
+function bwtInvNext() {
+  if (!bwtInvState || bwtInvState.step >= bwtInvState.steps.length - 1) return;
+  bwtInvState.step++;
+  bwtInvRender();
+}
+
+function bwtInvPrev() {
+  if (!bwtInvState || bwtInvState.step <= 0) return;
+  bwtInvState.step--;
+  bwtInvRender();
+}
+
+function bwtInvReset() {
+  if (!bwtInvState) return;
+  bwtInvState.step = 0;
+  bwtInvRender();
+}
+
+function bwtInvRender() {
+  if (!bwtInvState) { document.getElementById('bwtinv-explanation').textContent = 'Run the forward transform first.'; return; }
+  const { steps, step } = bwtInvState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('bwtinv-step-counter', step, total);
+  setBtn('bwtinv-prev-btn', step === 0);
+  setBtn('bwtinv-next-btn', step === total);
+  document.getElementById('bwtinv-explanation').textContent = s.explanation;
+
+  // Show BWT with current position highlighted, LF table
+  const bwt = s.bwt;
+  const n = bwt.length;
+  let html = '<div style="margin-bottom:12px;">';
+  html += '<div class="input-label" style="margin-bottom:6px;">BWT (L column):</div>';
+  html += '<div class="char-row">';
+  for (let i = 0; i < n; i++) {
+    const cls = s.x === i ? 'highlight-gold' : '';
+    html += `<div class="char-cell"><div class="char-box ${cls}">${bwt[i]}</div><div class="char-idx">${i}</div></div>`;
+  }
+  html += '</div></div>';
+
+  if (s.result) {
+    html += '<div style="margin-bottom:12px;"><div class="input-label" style="margin-bottom:6px;">Reconstructed string (filling right to left):</div><div class="char-row">';
+    for (let i = 0; i < s.result.length; i++) {
+      const cls = i === s.pos ? 'highlight-green' : s.result[i] ? '' : 'dim';
+      html += `<div class="char-cell"><div class="char-box ${cls}">${s.result[i] || '·'}</div><div class="char-idx">${i}</div></div>`;
+    }
+    html += '</div></div>';
+  }
+
+  // LF table (compact)
+  if (s.LF) {
+    html += '<div class="lf-table-wrap"><table style="font-size:12px;"><tr><th>i</th><th>BWT[i]</th><th>R[i]</th><th>LF(i)</th></tr>';
+    for (let i = 0; i < n; i++) {
+      const active = s.x === i ? 'row-active' : '';
+      html += `<tr class="${active}"><td>${i}</td><td>${bwt[i]}</td><td>${s.R[i]}</td><td>${s.LF[i]}</td></tr>`;
+    }
+    html += '</table></div>';
+  }
+
+  document.getElementById('bwtinv-stage').innerHTML = html;
+
+  if (s.type === 'done') {
+    document.getElementById('bwtinv-result').innerHTML = `<div class="stat-box" style="margin-top:12px;"><div class="stat-label">Original String</div><div class="stat-value" style="font-size:16px;letter-spacing:4px;">${s.original}</div></div>`;
+  } else {
+    document.getElementById('bwtinv-result').innerHTML = '';
+  }
+}
+
+// =============================================
+// SECTION 6: RLE
+// =============================================
+
+let rleState = null;
+let rleDecStateVar = null;
+
+function rleInit() {
+  const text = document.getElementById('rle-input').value;
+  if (!text) return;
+
+  // Parse runs
+  const runs = [];
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    let j = i;
+    while (j < text.length && text[j] === c) j++;
+    runs.push({ char: c, len: j - i, start: i, end: j - 1 });
+    i = j;
+  }
+
+  const steps = [];
+  steps.push({ type: 'init', text, runs, processed: [], explanation: `Input: "${text}". Identified ${runs.length} runs.` });
+
+  const encoded = [];
+  runs.forEach((run, idx) => {
+    const enc = run.len <= 2 ? run.char.repeat(run.len) : run.char + run.len;
+    encoded.push(enc);
+    steps.push({ type: 'process', text, runs, processed: runs.slice(0, idx + 1).map((r, i) => ({
+      ...r, encoded: runs.slice(0, i + 1).map(rr => rr.len <= 2 ? rr.char.repeat(rr.len) : rr.char + rr.len).pop()
+    })), currentRun: idx, encoded: [...encoded], explanation: `Run ${idx+1}: '${run.char}' × ${run.len} → encoded as "${enc}" (${run.len <= 2 ? 'keep (length ≤ 2)' : 'compress (length > 2)'})` });
+  });
+
+  const rlbwt = encoded.join('');
+  steps.push({ type: 'done', text, runs, rlbwt, encoded, explanation: `Done! RLBWT = "${rlbwt}". Original: ${text.length} chars, Encoded: ${rlbwt.length} chars.` });
+
+  rleState = { steps, step: 0, text, runs, rlbwt };
+  rleReset();
+  rleDecInit(rlbwt, text);
+}
+
+function rleNext() {
+  if (!rleState || rleState.step >= rleState.steps.length - 1) return;
+  rleState.step++;
+  rleRender();
+}
+
+function rlePrev() {
+  if (!rleState || rleState.step <= 0) return;
+  rleState.step--;
+  rleRender();
+}
+
+function rleReset() {
+  if (!rleState) return;
+  rleState.step = 0;
+  rleRender();
+}
+
+function rleRender() {
+  const { steps, step } = rleState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('rle-step-counter', step, total);
+  setBtn('rle-prev-btn', step === 0);
+  setBtn('rle-next-btn', step === total);
+  document.getElementById('rle-explanation').textContent = s.explanation;
+
+  // Show original with run highlighting
+  let html = '<div style="margin-bottom:16px;"><div class="input-label" style="margin-bottom:6px;">Original BWT:</div><div class="char-row">';
+  for (let i = 0; i < s.text.length; i++) {
+    // Find which run this char belongs to
+    const runIdx = s.runs.findIndex(r => i >= r.start && i <= r.end);
+    const isCurrent = s.currentRun === runIdx;
+    const cls = isCurrent ? 'highlight-gold' : runIdx % 2 === 0 ? 'highlight-green' : 'highlight-blue';
+    html += `<div class="char-cell"><div class="char-box ${cls}" style="opacity:${s.type==='init'?0.7:1}">${s.text[i]}</div></div>`;
+  }
+  html += '</div></div>';
+
+  // Show runs
+  html += '<div><div class="input-label" style="margin-bottom:6px;">Runs:</div><div class="run-display">';
+  s.runs.forEach((run, idx) => {
+    const isCurrent = s.currentRun === idx;
+    const isDone = s.processed && idx < s.processed.length;
+    const enc = run.len <= 2 ? run.char.repeat(run.len) : run.char + run.len;
+    html += `<div class="run-block ${isCurrent ? 'active' : isDone ? 'encoded' : ''}">
+      <span class="run-char">${run.char}</span>
+      <span class="run-len">×${run.len}</span>
+      ${isDone || isCurrent ? `<span style="font-size:10px;color:var(--accent);margin-top:2px;">→ ${enc}</span>` : ''}
+    </div>`;
+  });
+  html += '</div></div>';
+
+  document.getElementById('rle-stage').innerHTML = html;
+
+  if (s.type === 'done') {
+    document.getElementById('rle-result').innerHTML = `
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">Original</div><div class="stat-value" style="font-size:14px;letter-spacing:2px;">${s.text}</div><div class="stat-unit">${s.text.length} chars</div></div>
+        <div class="stat-box"><div class="stat-label">RLBWT</div><div class="stat-value" style="font-size:14px;letter-spacing:2px;color:var(--accent4)">${s.rlbwt}</div><div class="stat-unit">${s.rlbwt.length} chars</div></div>
+        <div class="stat-box"><div class="stat-label">Ratio</div><div class="stat-value">${(s.text.length / s.rlbwt.length).toFixed(2)}×</div></div>
+      </div>`;
+  } else {
+    document.getElementById('rle-result').innerHTML = '';
+  }
+}
+
+// RLE Decoder
+function rleDecInit(rlbwt, original) {
+  if (!rlbwt) return;
+  // Parse RLBWT
+  const tokens = [];
+  let i = 0;
+  while (i < rlbwt.length) {
+    const c = rlbwt[i];
+    // Check if next chars are digits
+    let j = i + 1;
+    let numStr = '';
+    while (j < rlbwt.length && /\d/.test(rlbwt[j])) { numStr += rlbwt[j]; j++; }
+    if (numStr) {
+      tokens.push({ char: c, len: parseInt(numStr), repr: c + numStr });
+    } else {
+      // Could be 1 or 2 repetitions
+      if (j < rlbwt.length && rlbwt[j] === c && (j+1 >= rlbwt.length || rlbwt[j+1] !== c)) {
+        tokens.push({ char: c, len: 2, repr: c + c });
+        j++;
+      } else {
+        tokens.push({ char: c, len: 1, repr: c });
+      }
+    }
+    i = j;
+  }
+
+  const steps = [];
+  steps.push({ type: 'init', rlbwt, tokens, decoded: '', explanation: `RLBWT = "${rlbwt}". Will expand each token.` });
+
+  let decoded = '';
+  tokens.forEach((token, idx) => {
+    const expansion = token.char.repeat(token.len);
+    decoded += expansion;
+    steps.push({ type: 'expand', rlbwt, tokens, currentToken: idx, decoded, expansion, explanation: `Token "${token.repr}": expand '${token.char}' × ${token.len} = "${expansion}"` });
+  });
+
+  steps.push({ type: 'done', decoded, original, explanation: `Decoding complete! Result: "${decoded}"` });
+
+  rleDecStateVar = { steps, step: 0, rlbwt, original };
+  rleDecReset();
+}
+
+function rleDecNext() {
+  if (!rleDecStateVar || rleDecStateVar.step >= rleDecStateVar.steps.length - 1) return;
+  rleDecStateVar.step++;
+  rleDecRender();
+}
+
+function rleDecPrev() {
+  if (!rleDecStateVar || rleDecStateVar.step <= 0) return;
+  rleDecStateVar.step--;
+  rleDecRender();
+}
+
+function rleDecReset() {
+  if (!rleDecStateVar) return;
+  rleDecStateVar.step = 0;
+  rleDecRender();
+}
+
+function rleDecRender() {
+  if (!rleDecStateVar) { document.getElementById('rledec-explanation').textContent = 'Run the encoder first.'; return; }
+  const { steps, step } = rleDecStateVar;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('rledec-step-counter', step, total);
+  setBtn('rledec-prev-btn', step === 0);
+  setBtn('rledec-next-btn', step === total);
+  document.getElementById('rledec-explanation').textContent = s.explanation;
+
+  let html = '<div><div class="input-label" style="margin-bottom:6px;">Tokens:</div><div class="run-display">';
+  s.tokens.forEach((token, idx) => {
+    const isCurrent = s.currentToken === idx;
+    const isDone = s.currentToken !== undefined && idx < s.currentToken;
+    html += `<div class="run-block ${isCurrent ? 'active' : isDone ? 'encoded' : ''}">
+      <span class="run-char">${token.repr}</span>
+      ${(isCurrent || isDone) ? `<span style="font-size:10px;color:var(--accent);margin-top:2px;">→ ${token.char.repeat(token.len)}</span>` : ''}
+    </div>`;
+  });
+  html += '</div></div>';
+
+  if (s.decoded) {
+    html += `<div style="margin-top:12px;"><div class="input-label" style="margin-bottom:6px;">Decoded so far:</div>${makeCharRow(s.decoded, {}, false)}</div>`;
+  }
+
+  document.getElementById('rledec-stage').innerHTML = html;
+}
+
+// =============================================
+// SECTION 7: MTF
+// =============================================
+
+let mtfState = null;
+let mtfDecStateVar = null;
+
+function mtfInit() {
+  const text = document.getElementById('mtf-input').value;
+  if (!text) return;
+
+  const chars = [...new Set(text.split(''))].sort();
+  let list = [...chars];
+
+  const steps = [];
+  steps.push({ type: 'init', list: [...list], text, pos: -1, encoded: [], explanation: `Initial LIST (sorted): [${list.join(', ')}]. Will encode "${text}".` });
+
+  const encoded = [];
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const idx = list.indexOf(c);
+    encoded.push(idx);
+    // Move c to front
+    list.splice(idx, 1);
+    list.unshift(c);
+    steps.push({ type: 'encode', list: [...list], pos: i, char: c, code: idx, encoded: [...encoded], explanation: `i=${i}: char='${c}', found at index ${idx} in LIST → MTF[${i}]=${idx}. Move '${c}' to front.` });
+  }
+
+  steps.push({ type: 'done', list: [...list], encoded, text, explanation: `Done! MTF output: [${encoded.join(', ')}]. Zero-order entropy is now lower.` });
+
+  mtfState = { steps, step: 0, text, chars, encoded };
+  mtfReset();
+  mtfDecInit(chars, encoded);
+}
+
+function mtfNext() {
+  if (!mtfState || mtfState.step >= mtfState.steps.length - 1) return;
+  mtfState.step++;
+  mtfRender();
+}
+
+function mtfPrev() {
+  if (!mtfState || mtfState.step <= 0) return;
+  mtfState.step--;
+  mtfRender();
+}
+
+function mtfReset() {
+  if (!mtfState) return;
+  mtfState.step = 0;
+  mtfRender();
+}
+
+function mtfRender() {
+  const { steps, step, text } = mtfState;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('mtf-step-counter', step, total);
+  setBtn('mtf-prev-btn', step === 0);
+  setBtn('mtf-next-btn', step === total);
+  document.getElementById('mtf-explanation').textContent = s.explanation;
+
+  // List display
+  let listHtml = '<div class="input-label" style="margin-bottom:6px;">LIST:</div><div class="mtf-list">';
+  s.list.forEach((c, i) => {
+    const isMoved = s.char === c && i === 0;
+    listHtml += `<div class="mtf-item ${isMoved ? 'moved' : ''}"><span style="font-size:10px;color:var(--text-dim);position:absolute;margin-top:-18px;">${i}</span>${c}</div>`;
+  });
+  listHtml += '</div>';
+  document.getElementById('mtf-list-display').innerHTML = listHtml;
+
+  // Input display with current pos
+  let inputHtml = '<div style="margin-bottom:12px;"><div class="input-label" style="margin-bottom:6px;">Input:</div><div class="char-row">';
+  for (let i = 0; i < text.length; i++) {
+    const cls = i === s.pos ? 'highlight-gold' : i < s.pos ? 'highlight-green' : '';
+    inputHtml += `<div class="char-cell"><div class="char-box ${cls}">${text[i]}</div><div class="char-idx">${i}</div></div>`;
+  }
+  inputHtml += '</div></div>';
+
+  let encHtml = '';
+  if (s.encoded && s.encoded.length > 0) {
+    encHtml = '<div><div class="input-label" style="margin-bottom:6px;">MTF output so far:</div><div class="char-row">';
+    s.encoded.forEach((v, i) => {
+      const cls = i === s.pos ? 'highlight-gold' : 'highlight-green';
+      encHtml += `<div class="char-cell"><div class="char-box ${cls}" style="min-width:28px;width:auto;padding:0 4px;">${v}</div></div>`;
+    });
+    encHtml += '</div></div>';
+  }
+
+  document.getElementById('mtf-stage').innerHTML = inputHtml + encHtml;
+
+  if (s.type === 'done') {
+    const H_orig = calcEntropy(mtfState.text);
+    const H_mtf = calcEntropy(s.encoded.join(''));
+    document.getElementById('mtf-result').innerHTML = `
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">MTF Output</div><div class="stat-value" style="font-size:13px;">[${s.encoded.join(', ')}]</div></div>
+        <div class="stat-box"><div class="stat-label">Original Entropy</div><div class="stat-value">${H_orig.toFixed(3)}</div><div class="stat-unit">bits/char</div></div>
+        <div class="stat-box"><div class="stat-label">MTF Entropy</div><div class="stat-value">${H_mtf.toFixed(3)}</div><div class="stat-unit">bits/char</div></div>
+      </div>`;
+  } else {
+    document.getElementById('mtf-result').innerHTML = '';
+  }
+}
+
+// MTF Decoder
+function mtfDecInit(chars, encoded) {
+  let list = [...chars];
+  const steps = [];
+  steps.push({ type: 'init', list: [...list], encoded, decoded: '', explanation: `Decoding MTF = [${encoded.join(', ')}]. Initial LIST: [${list.join(', ')}].` });
+
+  let decoded = '';
+  for (let i = 0; i < encoded.length; i++) {
+    const j = encoded[i];
+    const c = list[j];
+    decoded += c;
+    list.splice(j, 1);
+    list.unshift(c);
+    steps.push({ type: 'decode', list: [...list], pos: i, code: j, char: c, decoded, explanation: `i=${i}: MTF[${i}]=${j} → LIST[${j}]='${c}'. Output '${c}'. Move '${c}' to front.` });
+  }
+  steps.push({ type: 'done', decoded, explanation: `Decoding complete! Recovered: "${decoded}"` });
+
+  mtfDecStateVar = { steps, step: 0, chars, encoded };
+  mtfDecReset();
+}
+
+function mtfDecNext() {
+  if (!mtfDecStateVar || mtfDecStateVar.step >= mtfDecStateVar.steps.length - 1) return;
+  mtfDecStateVar.step++;
+  mtfDecRender();
+}
+
+function mtfDecPrev() {
+  if (!mtfDecStateVar || mtfDecStateVar.step <= 0) return;
+  mtfDecStateVar.step--;
+  mtfDecRender();
+}
+
+function mtfDecReset() {
+  if (!mtfDecStateVar) return;
+  mtfDecStateVar.step = 0;
+  mtfDecRender();
+}
+
+function mtfDecRender() {
+  if (!mtfDecStateVar) { document.getElementById('mtfdec-explanation').textContent = 'Run the encoder first.'; return; }
+  const { steps, step, encoded } = mtfDecStateVar;
+  const s = steps[step];
+  const total = steps.length - 1;
+
+  setStepCounter('mtfdec-step-counter', step, total);
+  setBtn('mtfdec-prev-btn', step === 0);
+  setBtn('mtfdec-next-btn', step === total);
+  document.getElementById('mtfdec-explanation').textContent = s.explanation;
+
+  // List
+  let listHtml = '<div class="input-label" style="margin-bottom:6px;">LIST:</div><div class="mtf-list">';
+  s.list.forEach((c, i) => {
+    const isMoved = s.char === c && i === 0;
+    listHtml += `<div class="mtf-item ${isMoved ? 'moved' : ''}"><span style="font-size:10px;color:var(--text-dim);position:absolute;margin-top:-18px;">${i}</span>${c}</div>`;
+  });
+  listHtml += '</div>';
+  document.getElementById('mtfdec-list-display').innerHTML = listHtml;
+
+  let html = '<div style="margin-bottom:12px;"><div class="input-label" style="margin-bottom:6px;">MTF Input:</div><div class="char-row">';
+  encoded.forEach((v, i) => {
+    const cls = i === s.pos ? 'highlight-gold' : i < s.pos ? 'highlight-green' : '';
+    html += `<div class="char-cell"><div class="char-box ${cls}" style="min-width:28px;width:auto;padding:0 4px;">${v}</div></div>`;
+  });
+  html += '</div></div>';
+
+  if (s.decoded) {
+    html += `<div><div class="input-label" style="margin-bottom:6px;">Decoded so far:</div>${makeCharRow(s.decoded, {}, false)}</div>`;
+  }
+
+  document.getElementById('mtfdec-stage').innerHTML = html;
+}
+
+// =============================================
+// SECTION 8: PIPELINE
+// =============================================
+
+let pipeState = null;
+
+function pipeInit() {
+  let text = document.getElementById('pipe-input').value.toLowerCase();
+  if (!text) return;
+
+  const stages = [];
+
+  // Stage 0: Original
+  stages.push({ label: 'Original Input', data: text, explanation: `Starting with input: "${text}" (${text.length} chars)`, entropy: calcEntropy(text) });
+
+  // Stage 1: BWT
+  const bwtResult = computeBWT(text + '$');
+  stages.push({ label: 'After BWT', data: bwtResult, explanation: `BWT permutes the string to cluster similar contexts. BWT = "${bwtResult}"`, entropy: calcEntropy(bwtResult) });
+
+  // Stage 2: MTF
+  const { encoded: mtfResult } = computeMTF(bwtResult);
+  const mtfStr = mtfResult.join(',');
+  stages.push({ label: 'After MTF', data: mtfStr, rawEncoded: mtfResult, explanation: `MTF converts BWT to sequence of small integers. Output: [${mtfStr}]`, entropy: calcEntropy(mtfStr) });
+
+  // Estimate final Huffman bits on MTF output
+  const huffBits = estimateHuffmanBits(mtfResult.map(String).join(''));
+
+  stages.push({ label: 'After Huffman', data: `~${huffBits} bits`, explanation: `Huffman encodes the skewed MTF distribution. Estimated: ~${huffBits} bits total.`, bitCount: huffBits });
+
+  const pipelineSteps = [];
+  pipelineSteps.push({ stageIdx: -1, explanation: 'Ready to run pipeline. Click NEXT to process each stage.' });
+  stages.forEach((stage, i) => {
+    pipelineSteps.push({ stageIdx: i, stage, explanation: stage.explanation });
+  });
+  pipelineSteps.push({ stageIdx: stages.length, done: true, stages, explanation: `Pipeline complete! See entropy reduction at each stage.` });
+
+  pipeState = { pipelineSteps, step: 0, stages, text };
+  pipeReset();
+}
+
+function computeBWT(text) {
+  const n = text.length;
+  const rotations = [];
+  for (let i = 0; i < n; i++) {
+    rotations.push({ suffix: text.slice(i) + text.slice(0, i), idx: i });
+  }
+  rotations.sort((a, b) => a.suffix.localeCompare(b.suffix));
+  return rotations.map(r => r.suffix[n - 1]).join('');
+}
+
+function computeMTF(text) {
+  const chars = [...new Set(text.split(''))].sort();
+  let list = [...chars];
+  const encoded = [];
+  for (const c of text) {
+    const idx = list.indexOf(c);
+    encoded.push(idx);
+    list.splice(idx, 1);
+    list.unshift(c);
+  }
+  return { encoded, chars };
+}
+
+function estimateHuffmanBits(str) {
+  const freq = getFrequencies(str);
+  const n = str.length;
+  // Use entropy as estimate
+  const H = calcEntropy(str);
+  return Math.ceil(n * (H + 0.1)); // slight overhead
+}
+
+function pipeNext() {
+  if (!pipeState || pipeState.step >= pipeState.pipelineSteps.length - 1) return;
+  pipeState.step++;
+  pipeRender();
+}
+
+function pipePrev() {
+  if (!pipeState || pipeState.step <= 0) return;
+  pipeState.step--;
+  pipeRender();
+}
+
+function pipeReset() {
+  if (!pipeState) return;
+  pipeState.step = 0;
+  pipeRender();
+}
+
+function pipeRender() {
+  const { pipelineSteps, step, stages, text } = pipeState;
+  const s = pipelineSteps[step];
+  const total = pipelineSteps.length - 1;
+
+  setStepCounter('pipe-step-counter', step, total);
+  setBtn('pipe-prev-btn', step === 0);
+  setBtn('pipe-next-btn', step === total);
+  document.getElementById('pipe-explanation').textContent = s.explanation;
+
+  const stageNames = ['Original', 'BWT', 'MTF', 'Huffman'];
+  const stageColors = ['var(--accent)', 'var(--accent2)', 'var(--accent4)', 'var(--accent3)'];
+
+  let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+  stages.forEach((stage, i) => {
+    const isActive = s.stageIdx === i;
+    const isDone = s.stageIdx > i;
+    const opacity = s.stageIdx < i ? 0.3 : 1;
+    html += `<div style="border:1px solid ${isActive ? stageColors[i] : 'var(--border)'};background:${isActive ? 'rgba(0,0,0,0.3)' : 'var(--surface2)'};padding:12px 16px;opacity:${opacity};transition:all 0.4s;">
+      <div style="color:${stageColors[i]};font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">${stage.label}</div>
+      <div style="color:var(--text);word-break:break-all;">${isDone || isActive ? (stage.data.length > 60 ? stage.data.slice(0, 60) + '…' : stage.data) : '···'}</div>
+      ${(isDone || isActive) && stage.entropy !== undefined ? `<div style="color:var(--text-dim);font-size:12px;margin-top:4px;">entropy ≈ ${stage.entropy.toFixed(3)} bits/char</div>` : ''}
+    </div>`;
+
+    if (i < stages.length - 1) {
+      html += `<div style="text-align:center;color:var(--text-dim);font-size:18px;opacity:${s.stageIdx > i ? 1 : 0.3};">↓</div>`;
+    }
+  });
+  html += '</div>';
+  document.getElementById('pipe-stage').innerHTML = html;
+
+  if (s.done) {
+    let compHtml = '<div style="margin-top:24px;"><table><tr><th>Stage</th><th>Data</th><th>Entropy (bits/char)</th><th>Improvement</th></tr>';
+    const baseEntropy = stages[0].entropy;
+    stages.forEach((stage, i) => {
+      if (stage.entropy !== undefined) {
+        const improvement = i === 0 ? '—' : `${((baseEntropy - stage.entropy) / baseEntropy * 100).toFixed(1)}% lower`;
+        compHtml += `<tr><td style="color:${stageColors[i]}">${stage.label}</td><td style="font-size:12px;">${stage.data.length > 30 ? stage.data.slice(0,30)+'…' : stage.data}</td><td>${stage.entropy.toFixed(4)}</td><td>${improvement}</td></tr>`;
+      }
+    });
+    compHtml += '</table></div>';
+    document.getElementById('pipe-comparison').innerHTML = compHtml;
+
+    // Pipeline entropy comparison for the section
+    document.getElementById('pipeline-entropy-comparison').innerHTML = compHtml;
+  } else {
+    document.getElementById('pipe-comparison').innerHTML = '';
+  }
+}
+
+// =============================================
+// INIT
+// =============================================
+
+// Initialize entropy on load
+window.addEventListener('load', () => {
+  calcEntropyDisplay();
+  // Set up the entropy input listener properly
+  document.getElementById('entropy-input').addEventListener('input', calcEntropyDisplay);
+});
+
+</script>
+</body>
+</html>

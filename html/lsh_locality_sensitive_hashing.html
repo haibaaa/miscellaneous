@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Locality Sensitive Hashing — Hyperplane, MinHash, Banding</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0d0f;
+    --surface: #131519;
+    --surface2: #1a1d23;
+    --surface3: #21252e;
+    --gold: #e8c56d;
+    --gold-dim: #9c8148;
+    --cyan: #5ed3c8;
+    --red: #e05252;
+    --green: #5ecf8a;
+    --purple: #a78bfa;
+    --text: #d4d8e2;
+    --text-dim: #7a8090;
+    --border: #2a2f3a;
+    --mono: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', 'Consolas', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5rem 6vw 4rem;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 80% 30%, rgba(167,139,250,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 10% 80%, rgba(94,211,200,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 2rem; opacity: 0; animation: fadeUp 0.6s 0.1s forwards; }
+  .hero h1 { font-family: var(--mono); font-size: clamp(2.2rem, 5vw, 4rem); font-weight: 700; line-height: 1.1; color: #fff; max-width: 22ch; opacity: 0; animation: fadeUp 0.7s 0.2s forwards; }
+  .hero h1 em { color: var(--purple); font-style: italic; }
+  .hero-sub { margin-top: 1.5rem; max-width: 62ch; color: var(--text-dim); font-size: 0.85rem; font-weight: 300; font-family: var(--mono); opacity: 0; animation: fadeUp 0.7s 0.35s forwards; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 2.5rem; opacity: 0; animation: fadeUp 0.7s 0.5s forwards; }
+  .chip { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; padding: 5px 12px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-dim); background: var(--surface); }
+  .chip.gold { border-color: var(--gold-dim); color: var(--gold); background: rgba(232,197,109,0.06); }
+  .chip.cyan { border-color: #3a8f8a; color: var(--cyan); background: rgba(94,211,200,0.06); }
+  .chip.purple { border-color: #6d5bb5; color: var(--purple); background: rgba(167,139,250,0.06); }
+
+  /* NAV */
+  nav { position: sticky; top: 0; background: rgba(12,13,15,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 5vw; z-index: 100; display: flex; gap: 0; overflow-x: auto; }
+  nav a { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; padding: 14px 16px; transition: color 0.15s; white-space: nowrap; }
+  nav a:hover { color: var(--gold); }
+
+  /* LAYOUT */
+  section { padding: 5rem 5vw; border-bottom: 1px solid var(--border); position: relative; }
+  .section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.8rem; }
+  .section-label::after { content: ''; height: 1px; flex: 1; max-width: 60px; background: var(--gold-dim); opacity: 0.4; }
+  h2 { font-family: var(--mono); font-size: clamp(1.4rem, 2.8vw, 2rem); font-weight: 700; color: #fff; line-height: 1.2; margin-bottom: 1.2rem; }
+  h3 { font-family: var(--mono); font-size: 0.95rem; font-weight: 500; color: var(--gold); margin: 2rem 0 0.5rem; letter-spacing: 0.02em; }
+  p { color: var(--text-dim); margin-bottom: 1rem; font-family: var(--mono); font-weight: 300; font-size: 13.5px; }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* MATH */
+  .math-block { background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--gold-dim); padding: 1.2rem 1.5rem; font-family: var(--mono); font-size: 12.5px; color: var(--cyan); margin: 1.2rem 0; border-radius: 0 6px 6px 0; overflow-x: auto; line-height: 1.9; }
+  .math-block .comment { color: var(--text-dim); font-style: italic; }
+
+  /* ALGO BOX */
+  .algo-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.8rem; margin: 1.5rem 0; }
+  .algo-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border); }
+  .algo-title { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+  .algo-badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 3px; background: rgba(94,211,200,0.1); color: var(--cyan); border: 1px solid rgba(94,211,200,0.2); }
+  .algo-badge.purple { background: rgba(167,139,250,0.1); color: var(--purple); border-color: rgba(167,139,250,0.2); }
+  .algo-step { display: flex; gap: 1rem; margin: 0.5rem 0; font-size: 13.5px; }
+  .step-num { font-family: var(--mono); color: var(--gold-dim); font-size: 11px; padding-top: 2px; flex-shrink: 0; width: 20px; }
+  .step-text { color: var(--text-dim); font-weight: 300; font-family: var(--mono); font-size: 13px; }
+  .step-text code { font-family: var(--mono); font-size: 12px; color: var(--cyan); background: rgba(94,211,200,0.08); padding: 1px 5px; border-radius: 3px; }
+  .step-sub { margin-left: 2rem; margin-top: 0.2rem; }
+
+  /* DEMO CARD */
+  .demo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 2rem 0; }
+  .demo-header { background: var(--surface2); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+  .demo-title { font-family: var(--mono); font-size: 12px; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; }
+  .demo-body { padding: 1.5rem; }
+
+  /* INPUTS */
+  .input-row { display: flex; gap: 0.8rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+  input[type="text"], input[type="number"], select, textarea {
+    background: var(--surface3); border: 1px solid var(--border); border-radius: 5px; padding: 8px 12px;
+    color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus { border-color: var(--gold-dim); }
+  input[type="text"] { min-width: 240px; }
+  input[type="number"] { width: 80px; }
+  textarea { min-width: 100%; min-height: 70px; resize: vertical; font-size: 12px; line-height: 1.6; }
+  button { background: var(--gold); color: #0c0d0f; border: none; border-radius: 5px; padding: 9px 18px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; font-weight: 500; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+  button:hover { opacity: 0.85; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button.secondary { background: var(--surface3); color: var(--text); border: 1px solid var(--border); }
+  button.purple-btn { background: var(--purple); color: #0c0d0f; }
+
+  /* TABLE */
+  .trace-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; margin-top: 1rem; }
+  .trace-table th { text-align: left; padding: 8px 12px; background: var(--surface2); color: var(--gold-dim); letter-spacing: 0.1em; font-weight: 400; border-bottom: 1px solid var(--border); }
+  .trace-table td { padding: 8px 12px; border-bottom: 1px solid rgba(42,47,58,0.5); color: var(--text-dim); vertical-align: top; }
+  .trace-table tr:last-child td { border-bottom: none; }
+  .trace-table tr.highlight td { background: rgba(167,139,250,0.05); }
+  .trace-table tr.highlight td:first-child { border-left: 2px solid var(--purple); }
+  .trace-table tr.gold-row td { background: rgba(232,197,109,0.04); }
+  .trace-table tr.gold-row td:first-child { border-left: 2px solid var(--gold-dim); }
+
+  .val-green { color: var(--green); }
+  .val-red { color: var(--red); }
+  .val-cyan { color: var(--cyan); }
+  .val-gold { color: var(--gold); }
+  .val-purple { color: var(--purple); }
+
+  /* RESULT BOX */
+  .result-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 1.2rem 1.5rem; margin-top: 1rem; display: flex; gap: 3rem; flex-wrap: wrap; align-items: center; }
+  .result-item { display: flex; flex-direction: column; gap: 4px; }
+  .result-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+  .result-value { font-family: var(--mono); font-size: 1.6rem; font-weight: 500; color: var(--gold); }
+  .result-value.sm { font-size: 1rem; }
+  .result-value.actual { color: var(--green); }
+  .result-value.good { color: var(--green); }
+  .result-value.bad { color: var(--red); }
+  .result-value.purple { color: var(--purple); }
+
+  /* CALLOUT */
+  .callout { background: rgba(94,211,200,0.05); border: 1px solid rgba(94,211,200,0.15); border-radius: 6px; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 12.5px; font-family: var(--mono); color: var(--text-dim); }
+  .callout.warn { background: rgba(232,197,109,0.05); border-color: rgba(232,197,109,0.15); }
+  .callout.purple { background: rgba(167,139,250,0.05); border-color: rgba(167,139,250,0.15); }
+  .callout strong { color: var(--cyan); font-weight: 500; }
+  .callout.warn strong { color: var(--gold); }
+  .callout.purple strong { color: var(--purple); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .tab-btn { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 18px; color: var(--text-dim); font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; cursor: pointer; transform: none; transition: color 0.2s, border-color 0.2s; margin-bottom: -1px; }
+  .tab-btn:hover { color: var(--text); transform: none; }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* COMPARE GRID */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .compare-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .compare-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem; }
+  .compare-card h4 { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--gold); text-transform: uppercase; margin-bottom: 0.8rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .compare-card p { font-family: var(--mono); font-size: 12px; margin: 0; }
+  .compare-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(42,47,58,0.4); font-size: 12px; }
+  .compare-row:last-child { border-bottom: none; }
+  .compare-key { color: var(--text-dim); font-family: var(--mono); font-size: 11px; }
+  .compare-val { color: var(--text); font-family: var(--mono); font-size: 11px; }
+
+  /* SECTION BG */
+  .bg-hp::after { content: 'HP'; position: absolute; top: 3rem; right: 5vw; font-family: var(--mono); font-size: 10rem; font-weight: 700; color: rgba(167,139,250,0.03); pointer-events: none; line-height: 1; }
+  .bg-mh::after { content: 'MH'; position: absolute; top: 3rem; right: 5vw; font-family: var(--mono); font-size: 10rem; font-weight: 700; color: rgba(94,207,138,0.03); pointer-events: none; line-height: 1; }
+  .bg-bd::after { content: 'BD'; position: absolute; top: 3rem; right: 5vw; font-family: var(--mono); font-size: 10rem; font-weight: 700; color: rgba(94,211,200,0.03); pointer-events: none; line-height: 1; }
+
+  /* HYPERPLANE VIZ */
+  .hp-canvas-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 1rem 0; }
+  canvas { display: block; }
+
+  /* SIGNATURE DISPLAY */
+  .sig-row { display: flex; gap: 4px; flex-wrap: wrap; margin: 0.5rem 0; align-items: center; }
+  .sig-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); width: 100px; flex-shrink: 0; }
+  .sig-bit { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-family: var(--mono); font-size: 12px; font-weight: 500; border: 1px solid var(--border); transition: all 0.2s; flex-shrink: 0; }
+  .sig-bit.one { background: rgba(94,207,138,0.15); border-color: rgba(94,207,138,0.35); color: var(--green); }
+  .sig-bit.zero { background: rgba(224,82,82,0.08); border-color: rgba(224,82,82,0.2); color: var(--red); }
+  .sig-bit.match { background: rgba(232,197,109,0.15); border-color: var(--gold); color: var(--gold); }
+  .sig-bit.band-sep { background: none; border: none; color: var(--border); font-size: 14px; width: 14px; }
+
+  /* BAND VIZ */
+  .band-grid { display: flex; gap: 8px; flex-wrap: wrap; margin: 1rem 0; }
+  .band-block { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .band-header { background: var(--surface2); padding: 4px 10px; font-family: var(--mono); font-size: 10px; color: var(--gold-dim); letter-spacing: 0.1em; text-align: center; border-bottom: 1px solid var(--border); }
+  .band-cell { padding: 6px 10px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); border-bottom: 1px solid rgba(42,47,58,0.4); text-align: center; }
+  .band-cell:last-child { border-bottom: none; }
+  .band-cell.active { background: rgba(167,139,250,0.1); color: var(--purple); }
+  .band-cell.match { background: rgba(94,207,138,0.1); color: var(--green); }
+
+  /* S-CURVE */
+  #scurve-canvas { display: block; border-radius: 6px; }
+
+  /* CHAR MATRIX */
+  .char-matrix { border-collapse: collapse; font-family: var(--mono); font-size: 12px; margin: 1rem 0; }
+  .char-matrix th { padding: 6px 14px; background: var(--surface2); color: var(--gold-dim); border: 1px solid var(--border); text-align: center; }
+  .char-matrix td { padding: 6px 14px; border: 1px solid var(--border); text-align: center; color: var(--text-dim); }
+  .char-matrix td.one { color: var(--green); background: rgba(94,207,138,0.06); font-weight: 500; }
+  .char-matrix td.zero { color: var(--border); }
+  .char-matrix td.elem { color: var(--gold); background: var(--surface2); font-size: 11px; }
+  .char-matrix td.perm-min { background: rgba(232,197,109,0.12); color: var(--gold); font-weight: 700; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 700px) {
+    .compare-grid, .compare-grid.three { grid-template-columns: 1fr; }
+    input[type="text"] { min-width: 100%; }
+    .input-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">CSD 482 · Algorithms in the Real World · Interactive Study Guide</div>
+  <h1>Locality <em>Sensitive</em> Hashing</h1>
+  <p class="hero-sub">Deep dives into Hyperplane LSH, MinHash (Jaccard similarity), and the Banding technique — with interactive walkthroughs, visualizations, and edge-case exploration.</p>
+  <div class="hero-chips">
+    <span class="chip purple">Hyperplane LSH</span>
+    <span class="chip purple">Cosine Similarity</span>
+    <span class="chip gold">MinHash</span>
+    <span class="chip gold">Jaccard Similarity</span>
+    <span class="chip cyan">Banding</span>
+    <span class="chip cyan">S-Curve</span>
+    <span class="chip">ANN · PLEB</span>
+    <span class="chip">SimHash</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#intro">Intro</a>
+  <a href="#pleb">PLEB→ANN</a>
+  <a href="#hyperplane">Hyperplane</a>
+  <a href="#lsh-theory">LSH Theory</a>
+  <a href="#minhash">MinHash</a>
+  <a href="#banding">Banding</a>
+  <a href="#compare">Compare</a>
+</nav>
+
+<!-- INTRO -->
+<section id="intro">
+  <div class="section-label">Background</div>
+  <h2>The Nearest-Neighbor Problem</h2>
+  <p>Given a set P of <strong>n points in ℝ^d</strong>, find the point p ∈ P closest to a query q. The naïve scan is O(dn) — prohibitive when n or d are large. Exact solutions suffer from the <strong>curse of dimensionality</strong>: all known approaches need either exponential space or exponential time.</p>
+
+  <div class="callout warn">
+    <strong>Curse of Dimensionality:</strong> Voronoi diagrams need O(n^⌈d/2⌉) space. k-d trees run in O(d log n) on average but O(dn) worst case. No near-linear space + sub-linear time solution is known for exact nearest-neighbor.
+  </div>
+
+  <div class="compare-grid">
+    <div class="compare-card">
+      <h4>Exact Approaches</h4>
+      <div class="compare-row"><span class="compare-key">Naïve scan</span><span class="compare-val">O(dn) query, O(dn) space</span></div>
+      <div class="compare-row"><span class="compare-key">Voronoi (2D)</span><span class="compare-val">O(log n) query, O(n) space</span></div>
+      <div class="compare-row"><span class="compare-key">Voronoi (d-D)</span><span class="compare-val">O(log n) query, O(n^⌈d/2⌉) space</span></div>
+      <div class="compare-row"><span class="compare-key">k-d tree</span><span class="compare-val">O(d log n) avg, O(dn) worst</span></div>
+    </div>
+    <div class="compare-card">
+      <h4>Approximate Approach: LSH</h4>
+      <div class="compare-row"><span class="compare-key">ε-ANN</span><span class="compare-val">Return p with dist ≤ ε · OPT</span></div>
+      <div class="compare-row"><span class="compare-key">Via PLEB</span><span class="compare-val">O(S(n) log(D_max/D_min)) space</span></div>
+      <div class="compare-row"><span class="compare-key">Query time</span><span class="compare-val">O(T(n) log log(D_max/D_min))</span></div>
+      <div class="compare-row"><span class="compare-key">κ = ln α / ln β</span><span class="compare-val">Controls space/time trade-off</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLEB → ANN -->
+<section id="pleb">
+  <div class="section-label">Section 01</div>
+  <h2>PLEB → ANN Reduction</h2>
+  <p>The <strong>(r₁, r₂)-PLEB</strong> (Point Location in Equal Balls) is an intermediary problem: given query q, return a point within r₂ if one exists within r₁, or null if none exists within r₂. The "undefined" zone (point within r₂ but not r₁) can always be checked explicitly.</p>
+
+  <div class="algo-box">
+    <div class="algo-box-header"><span class="algo-title">ANN via PLEB — Index Construction</span><span class="algo-badge">δ = √ε</span></div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Set <code>δ = √ε</code></span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">Build <code>(r, δr)-PLEB</code> for each r ∈ {D_min/δ, D_min, δ·D_min, δ²·D_min, …, D_max}</span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Total instances: <code>k ≤ 1 + log_δ(D_max/D_min)</code></span></div>
+    <div class="algo-step"><span class="step-num">4.</span><span class="step-text">Total space: <code>O(k · S(n))</code></span></div>
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-box-header"><span class="algo-title">ANN Query via Binary Search on PLEB</span><span class="algo-badge">O(T(n) · log k)</span></div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Find smallest r* such that <code>(r*, δr*)-PLEB</code> returns a point p*</span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">Guaranteed: <code>dist(p*, q) ≤ δ·r*</code> (returned point is within r₂)</span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Guaranteed: no point within r*/δ of q (else smaller PLEB would have fired)</span></div>
+    <div class="algo-step"><span class="step-num">4.</span><span class="step-text">Therefore: <code>r*/δ &lt; OPT ≤ dist(p*,q) ≤ δ·r*</code> → p* is δ² = ε approximate</span></div>
+    <div class="algo-step"><span class="step-num">5.</span><span class="step-text">Binary search exploits monotonicity: <code>O(log k)</code> PLEB queries</span></div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header"><span class="demo-title">Interactive — PLEB Parameter Calculator</span></div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field"><label>Approx factor ε</label><input type="number" id="pleb-eps" value="4" min="1.1" max="100" step="0.1"></div>
+        <div class="field"><label>D_min</label><input type="number" id="pleb-dmin" value="1" min="0.001" step="0.1"></div>
+        <div class="field"><label>D_max</label><input type="number" id="pleb-dmax" value="1000" min="1"></div>
+        <div class="field" style="justify-content:flex-end;"><button onclick="calcPLEB()">Calculate</button></div>
+      </div>
+      <div id="pleb-output"></div>
+    </div>
+  </div>
+</section>
+
+<!-- HYPERPLANE LSH -->
+<section id="hyperplane" class="bg-hp">
+  <div class="section-label">Section 02</div>
+  <h2>Hyperplane LSH — Cosine Similarity</h2>
+  <p>Points are hashed by which side of a random hyperplane they fall on. Each hyperplane has a normal vector drawn from <strong>N(0,1)^d</strong>. The k-bit hash code captures which of k hyperplanes each point is "above" or "below". Similar points (small angle) are more likely to agree on all bits.</p>
+
+  <div class="math-block">
+h(p) = sign(p · Z^T)   <span class="comment">← 1 if dot-product ≥ 0, else 0</span>
+
+Pr[h(p) = h(q)] = 1 − θ/π    <span class="comment">← where θ = angle between p and q</span>
+
+For k hyperplanes (one hash function g ∈ G):
+  Pr[g(p) = g(q)] = (1 − θ/π)^k = α^k
+
+α = 1 − θ/π → 1   as θ → 0  (similar points)
+β = 1 − θ/π → 0   as θ → π  (dissimilar points)
+
+False-negative rate  = (1 − α^k)^ℓ       <span class="comment">← over ℓ sets of hyperplanes</span>
+Expected bad points  = n · (1−(1−β^k)^ℓ) <span class="comment">← via union bound</span>
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-box-header"><span class="algo-title">Hyperplane LSH — Hash Code Computation</span><span class="algo-badge purple">k hyperplanes, ℓ sets</span></div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Select <code>k × ℓ</code> random hyperplanes. Each hyperplane: d-dim normal vector from N(0,1)^d.</span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">For each point p and each set j ∈ [ℓ]: compute k-bit hash <code>gⱼ(p) = [sign(p·Z₀ᵀ), …, sign(p·Zₖ₋₁ᵀ)]</code></span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">Store p in bucket <code>gⱼ(p)</code> for each j. Space: <code>O(dn·ℓ + kn·ℓ)</code></span></div>
+    <div class="algo-step"><span class="step-num">4.</span><span class="step-text">Query q: compute ℓ hash codes, collect points from ℓ buckets, check distances explicitly.</span></div>
+    <div class="algo-step"><span class="step-num">5.</span><span class="step-text">Avg bucket size: <code>n/2^k</code>. Choosing <code>k = log₂ n</code> gives O(d·ℓ·log n) query time.</span></div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header"><span class="demo-title">Interactive — Hyperplane Hashing Visualizer (2D)</span></div>
+    <div class="demo-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('hp','viz')">2D Visual</button>
+        <button class="tab-btn" onclick="switchTab('hp','trace')">Hash Trace</button>
+        <button class="tab-btn" onclick="switchTab('hp','params')">Parameter Explorer</button>
+      </div>
+
+      <div id="hp-tab-viz" class="tab-panel active">
+        <div class="input-row">
+          <div class="field"><label>k (hyperplanes)</label><input type="number" id="hp-k" value="3" min="1" max="6"></div>
+          <div class="field"><label>n (points)</label><input type="number" id="hp-n" value="20" min="3" max="50"></div>
+          <div class="field"><label>Seed</label><input type="number" id="hp-seed" value="42" min="1" max="9999"></div>
+          <div class="field" style="justify-content:flex-end;">
+            <button onclick="drawHyperplane()">Regenerate</button>
+          </div>
+        </div>
+        <div class="hp-canvas-wrap">
+          <canvas id="hp-canvas" width="700" height="400"></canvas>
+        </div>
+        <p style="font-size:11px; margin-top:0.5rem;">Each colored region = unique hash bucket (same k-bit code). Points in the same region collide. Click canvas to add a query point.</p>
+        <div id="hp-viz-result"></div>
+      </div>
+
+      <div id="hp-tab-trace" class="tab-panel">
+        <div class="input-row">
+          <div class="field"><label>Points (x,y pairs, semicolons)</label><input type="text" id="hp-points" value="3,4; -2,1; 1,-3; 5,2; -4,-2; 0,5"></div>
+          <div class="field"><label>Query (x,y)</label><input type="text" id="hp-query" value="2,3"></div>
+          <div class="field"><label>k</label><input type="number" id="hp-k2" value="3" min="1" max="8"></div>
+          <div class="field"><label>ℓ (sets)</label><input type="number" id="hp-l" value="2" min="1" max="5"></div>
+          <div class="field"><label>Seed</label><input type="number" id="hp-seed2" value="7" min="1" max="9999"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="runHPTrace()">Trace</button></div>
+        </div>
+        <div id="hp-trace-output"></div>
+      </div>
+
+      <div id="hp-tab-params" class="tab-panel">
+        <p style="font-size:13px; margin-bottom:1rem;">Explore how α, β, k, ℓ interact. Set θ_max (similar) and θ_min (dissimilar) in degrees.</p>
+        <div class="input-row">
+          <div class="field"><label>θ_max (similar, °)</label><input type="number" id="hp-theta-max" value="30" min="1" max="170"></div>
+          <div class="field"><label>θ_min (dissimilar, °)</label><input type="number" id="hp-theta-min" value="90" min="1" max="179"></div>
+          <div class="field"><label>Target FN rate δ</label><input type="number" id="hp-delta" value="0.1" min="0.001" max="0.5" step="0.01"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="calcHPParams()">Calculate k, ℓ</button></div>
+        </div>
+        <div id="hp-params-output"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LSH THEORY -->
+<section id="lsh-theory">
+  <div class="section-label">Section 03</div>
+  <h2>LSH Family — Formal Theory</h2>
+  <p>A hash family H is <strong>(r₁, r₂, α, β)-locally sensitive</strong> if near points collide with high probability (≥ α) and far points collide with low probability (≤ β). The key parameter κ = ln α / ln β governs the space-time tradeoff.</p>
+
+  <div class="math-block">
+LSH Family H = {h : U → B} is (r₁, r₂, α, β)-sensitive if:
+  dist(p,q) ≤ r₁  →  Pr[h(p)=h(q)] ≥ α
+  dist(p,q) > r₂  →  Pr[h(p)=h(q)] ≤ β
+
+Compound hash family G = {g : U → B^k}:
+  Each g = (h₀, h₁, …, hₖ₋₁), hᵢ ∈ H independently
+
+Setting k = −ln(n)/ln(β) = −log_β(n):
+  β^k = 1/n  →  E[|far points in bucket|] ≤ 1   (Markov → Pr ≤ 1/2)
+
+Setting ℓ = n^κ  where  κ = ln α / ln β:
+  α^k = n^{−κ}  →  Pr[near point in some bucket] ≥ 1−1/e ≥ 1/2
+
+Overall success probability ≥ 1/4. Amplify with c = Θ(log n) copies → 1 − (3/4)^c.
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header"><span class="demo-title">Interactive — LSH Theory Parameter Solver</span></div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field"><label>α (near collision prob)</label><input type="number" id="lsh-alpha" value="0.8" min="0.01" max="0.99" step="0.01"></div>
+        <div class="field"><label>β (far collision prob)</label><input type="number" id="lsh-beta" value="0.2" min="0.01" max="0.99" step="0.01"></div>
+        <div class="field"><label>n (dataset size)</label><input type="number" id="lsh-n" value="1000" min="10"></div>
+        <div class="field" style="justify-content:flex-end;"><button onclick="calcLSHTheory()">Solve</button></div>
+      </div>
+      <div id="lsh-theory-output"></div>
+    </div>
+  </div>
+
+  <h3>LSH Families Summary</h3>
+  <table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>Family</th><th>Universe</th><th>Distance</th><th>α</th><th>β</th></tr></thead>
+    <tbody>
+      <tr class="gold-row"><td class="val-gold">Hamming Cube</td><td>{0,1}^d</td><td>Hamming</td><td class="val-green">1 − r₁/d</td><td class="val-red">1 − r₂/d</td></tr>
+      <tr><td class="val-purple">Cosine / Hyperplane</td><td>ℝ^d</td><td>Angular θ</td><td class="val-green">1 − θ₁/π</td><td class="val-red">1 − θ₂/π</td></tr>
+      <tr class="gold-row"><td class="val-cyan">MinHash</td><td>Sets</td><td>Jaccard dist = 1−JS</td><td class="val-green">1 − r₁</td><td class="val-red">1 − r₂</td></tr>
+      <tr><td class="val-gold">SimHash</td><td>Documents</td><td>≈ Angular</td><td class="val-green">≈ 1 − θ₁/π</td><td class="val-red">≈ 1 − θ₂/π</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- MINHASH -->
+<section id="minhash" class="bg-mh">
+  <div class="section-label">Section 04</div>
+  <h2>MinHash — Jaccard Similarity</h2>
+  <p>MinHash estimates the <strong>Jaccard similarity</strong> JS(A,B) = |A∩B|/|A∪B| between sets. The key insight: a random permutation π of rows in the characteristic matrix produces minHash(A) = minHash(B) with probability exactly JS(A,B).</p>
+
+  <div class="math-block">
+JS(A, B) = |A ∩ B| / |A ∪ B|     <span class="comment">← similarity of two sets</span>
+dist(A,B) = 1 − JS(A,B)           <span class="comment">← complementary distance</span>
+
+Key property (MinHash + Jaccard):
+  Pr[minHash_π(A) = minHash_π(B)] = JS(A,B)
+
+Why? Among rows where at least one of A,B has a 1:
+  x = rows where BOTH have 1  (= |A∩B|)
+  y = rows where exactly ONE has 1
+  → Pr[first-1-row is same for both] = x/(x+y) = JS(A,B) ✓
+
+ℓ permutations → estimate  JS_min(A,B) = (# matching minHashes) / ℓ
+  E[JS_min(A,B)] = JS(A,B)   (unbiased!)
+  Pr[|JS_min − JS| > λ] ≤ 2e^{−ℓλ²/2}   (Hoeffding bound)
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-box-header"><span class="algo-title">MinHash Computation (Practical)</span><span class="algo-badge">ℓ hash functions</span></div>
+    <div class="algo-step"><span class="step-num">1.</span><span class="step-text">Choose <code>ℓ</code> independent hash functions <code>hᵣ : Σ → [0, σ−1]</code></span></div>
+    <div class="algo-step"><span class="step-num">2.</span><span class="step-text">Initialize <code>minHash[r] = ∞</code> for all r</span></div>
+    <div class="algo-step"><span class="step-num">3.</span><span class="step-text">For each word w in document A: for each r, update <code>minHash[r] = min(minHash[r], hᵣ(w))</code></span></div>
+    <div class="algo-step"><span class="step-num">4.</span><span class="step-text">Output <code>⟨minHash[0], …, minHash[ℓ−1]⟩</code> as the signature</span></div>
+    <div class="algo-step"><span class="step-num">5.</span><span class="step-text">Estimate JS: <code>JS_min(A,B) = (# positions r where minHash_r(A) = minHash_r(B)) / ℓ</code></span></div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header"><span class="demo-title">Interactive — MinHash Step-by-Step</span></div>
+    <div class="demo-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('mh','matrix')">Characteristic Matrix</button>
+        <button class="tab-btn" onclick="switchTab('mh','sig')">Signature Trace</button>
+        <button class="tab-btn" onclick="switchTab('mh','accuracy')">Accuracy vs ℓ</button>
+        <button class="tab-btn" onclick="switchTab('mh','hoeffding')">Hoeffding Bound</button>
+      </div>
+
+      <div id="mh-tab-matrix" class="tab-panel active">
+        <p style="font-size:13px; margin-bottom:1rem;">Enter sets as comma-separated integers. The characteristic matrix will be built automatically.</p>
+        <div class="input-row">
+          <div class="field"><label>Set A</label><input type="text" id="mh-setA" value="1,4,5"></div>
+          <div class="field"><label>Set B</label><input type="text" id="mh-setB" value="0,1,3,5"></div>
+          <div class="field"><label>Set C</label><input type="text" id="mh-setC" value="2,4"></div>
+          <div class="field"><label>Set D</label><input type="text" id="mh-setD" value="0,3,5"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="buildCharMatrix()">Build Matrix</button></div>
+        </div>
+        <div id="mh-matrix-output"></div>
+      </div>
+
+      <div id="mh-tab-sig" class="tab-panel">
+        <div class="input-row">
+          <div class="field"><label>Set A</label><input type="text" id="mh-sigA" value="1,4,5"></div>
+          <div class="field"><label>Set B</label><input type="text" id="mh-sigB" value="0,1,3,5"></div>
+          <div class="field"><label>ℓ (hash functions)</label><input type="number" id="mh-l" value="6" min="1" max="20"></div>
+          <div class="field"><label>Seed</label><input type="number" id="mh-seed" value="42" min="1" max="999"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="runMinHashTrace()">Trace</button></div>
+        </div>
+        <div id="mh-sig-output"></div>
+      </div>
+
+      <div id="mh-tab-accuracy" class="tab-panel">
+        <div class="input-row">
+          <div class="field"><label>Set A</label><input type="text" id="mh-accA" value="1,2,3,4,5,6,7,8"></div>
+          <div class="field"><label>Set B</label><input type="text" id="mh-accB" value="5,6,7,8,9,10,11,12"></div>
+          <div class="field"><label>Max ℓ</label><input type="number" id="mh-maxl" value="100" min="10" max="500"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="runMHAccuracy()">Simulate</button></div>
+        </div>
+        <div id="mh-acc-output"></div>
+      </div>
+
+      <div id="mh-tab-hoeffding" class="tab-panel">
+        <p style="font-size:13px; margin-bottom:1rem;">Given desired max error λ and failure probability α, how many permutations ℓ are needed?</p>
+        <div class="input-row">
+          <div class="field"><label>Max error λ</label><input type="number" id="hf-lambda" value="0.1" min="0.01" max="0.5" step="0.01"></div>
+          <div class="field"><label>Failure prob α</label><input type="number" id="hf-alpha" value="0.05" min="0.001" max="0.5" step="0.001"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="calcHoeffding()">Calculate ℓ</button></div>
+        </div>
+        <div id="hf-output"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BANDING -->
+<section id="banding" class="bg-bd">
+  <div class="section-label">Section 05</div>
+  <h2>Banding Technique</h2>
+  <p>Given ℓ MinHash signatures, comparing all pairs is O(n²). Banding converts this into a probabilistic filter: divide the ℓ-length signature into <strong>b bands of r rows</strong> (ℓ = b·r). Two documents become <em>candidate pairs</em> if they match in at least one band. This creates an S-curve threshold effect.</p>
+
+  <div class="math-block">
+Pr[match in one band] = s^r           <span class="comment">← s = JS(A,B), all r rows agree</span>
+Pr[no match in any band] = (1 − s^r)^b
+Pr[candidate pair] = P(s) = 1 − (1 − s^r)^b    <span class="comment">← the S-curve!</span>
+
+Threshold (inflection point): t = (1/b)^{1/r} = (1/b)^{b/ℓ}
+
+s >> t  →  P(s) → 1  (high-similarity pairs detected)
+s << t  →  P(s) → 0  (low-similarity pairs ignored)
+
+Increasing b: fewer rows/band → lower threshold → more matches → fewer FN, more FP
+Decreasing b: more rows/band → higher threshold → fewer matches → fewer FP, more FN
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-header"><span class="demo-title">Interactive — Banding Explorer</span></div>
+    <div class="demo-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('bd','scurve')">S-Curve</button>
+        <button class="tab-btn" onclick="switchTab('bd','trace')">Band Trace</button>
+        <button class="tab-btn" onclick="switchTab('bd','workflow')">Full Workflow</button>
+        <button class="tab-btn" onclick="switchTab('bd','edge')">Edge Cases</button>
+      </div>
+
+      <div id="bd-tab-scurve" class="tab-panel active">
+        <div class="input-row">
+          <div class="field"><label>ℓ (total rows)</label><input type="number" id="sc-l" value="100" min="4" max="500"></div>
+          <div class="field"><label>b (bands)</label><input type="number" id="sc-b" value="20" min="1" max="100"></div>
+          <div class="field" style="justify-content:flex-end;">
+            <button onclick="drawSCurve()">Draw S-Curve</button>
+          </div>
+        </div>
+        <canvas id="scurve-canvas" width="680" height="320" style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; margin:1rem 0;"></canvas>
+        <div id="sc-output"></div>
+      </div>
+
+      <div id="bd-tab-trace" class="tab-panel">
+        <div class="input-row">
+          <div class="field"><label>Signature A (comma-sep)</label><input type="text" id="bd-sigA" value="3,1,4,1,5,9,2,6,5,3,5,8,9,7,9"></div>
+          <div class="field"><label>Signature B (comma-sep)</label><input type="text" id="bd-sigB" value="3,1,4,2,5,9,2,6,5,0,5,8,9,7,3"></div>
+          <div class="field"><label>b (bands)</label><input type="number" id="bd-b" value="5" min="1" max="20"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="runBandTrace()">Trace</button></div>
+        </div>
+        <div id="bd-trace-output"></div>
+      </div>
+
+      <div id="bd-tab-workflow" class="tab-panel">
+        <p style="font-size:13px; margin-bottom:1rem;">Full MinHash + Banding pipeline on a small document collection.</p>
+        <div class="input-row">
+          <div class="field"><label>Doc 1</label><input type="text" id="wf-d1" value="the quick brown fox jumps over the lazy dog"></div>
+        </div>
+        <div class="input-row">
+          <div class="field"><label>Doc 2</label><input type="text" id="wf-d2" value="the fast brown fox leaps over a lazy cat"></div>
+        </div>
+        <div class="input-row">
+          <div class="field"><label>Doc 3</label><input type="text" id="wf-d3" value="machine learning algorithms are fascinating and complex"></div>
+        </div>
+        <div class="input-row">
+          <div class="field"><label>Doc 4</label><input type="text" id="wf-d4" value="the quick brown fox and the lazy dog run fast"></div>
+        </div>
+        <div class="input-row">
+          <div class="field"><label>ℓ</label><input type="number" id="wf-l" value="12" min="4" max="60"></div>
+          <div class="field"><label>b</label><input type="number" id="wf-b" value="4" min="2" max="12"></div>
+          <div class="field" style="justify-content:flex-end;"><button onclick="runWorkflow()">Run Pipeline</button></div>
+        </div>
+        <div id="wf-output"></div>
+      </div>
+
+      <div id="bd-tab-edge" class="tab-panel">
+        <p style="font-size:13px; margin-bottom:1rem;">Explore edge cases of the banding scheme.</p>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem;">
+          <button class="secondary" onclick="runBandEdge('identical')">Identical Sets</button>
+          <button class="secondary" onclick="runBandEdge('disjoint')">Disjoint Sets</button>
+          <button class="secondary" onclick="runBandEdge('b1')">b=1 (one big band)</button>
+          <button class="secondary" onclick="runBandEdge('bl')">b=ℓ (ℓ bands of 1)</button>
+          <button class="secondary" onclick="runBandEdge('threshold')">Near Threshold</button>
+        </div>
+        <div id="bd-edge-output"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section id="compare">
+  <div class="section-label">Section 06</div>
+  <h2>Comparison & Practical Trade-offs</h2>
+
+  <div class="demo-card">
+    <div class="demo-header"><span class="demo-title">Interactive — Full LSH Method Comparison</span></div>
+    <div class="demo-body">
+      <div class="input-row">
+        <div class="field"><label>JS similarity threshold</label><input type="number" id="cmp-js" value="0.5" min="0.01" max="0.99" step="0.01"></div>
+        <div class="field"><label>ℓ (signatures)</label><input type="number" id="cmp-l" value="100" min="4" max="500"></div>
+        <div class="field" style="justify-content:flex-end;"><button onclick="runComparison()">Compare</button></div>
+      </div>
+      <div id="cmp-output"></div>
+    </div>
+  </div>
+
+  <h3>Theoretical Summary</h3>
+  <table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>Technique</th><th>Hash Computation</th><th>Space (index)</th><th>Query Time</th><th>Error Bound</th></tr></thead>
+    <tbody>
+      <tr><td class="val-purple">Hyperplane LSH</td><td>O(dk) dot products</td><td>O(dn·ℓ + kn·ℓ)</td><td>O(dk·ℓ + d·n/2^k·ℓ)</td><td>FN rate = (1−α^k)^ℓ</td></tr>
+      <tr class="gold-row"><td class="val-gold">MinHash</td><td>O(|A|·ℓ) hashes</td><td>O(n·ℓ)</td><td>O(ℓ) signatures</td><td>2e^{−ℓλ²/2}</td></tr>
+      <tr><td class="val-cyan">MinHash + Banding</td><td>O(|A|·ℓ) hashes</td><td>O(n·b) hash tables</td><td>O(b) band lookups</td><td>1−(1−s^r)^b</td></tr>
+      <tr class="gold-row"><td class="val-green">SimHash</td><td>O(|A|·γ) hashes</td><td>O(n·C(b,d))</td><td>O(C(b,d)) probes</td><td>Approx cosine</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer style="padding:3rem 5vw; border-top:1px solid var(--border); text-align:center;">
+  <p style="font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:0.1em;">Based on lecture notes by Prof. Arnab Ganguly · CSD 482 · Shiv Nadar IoE</p>
+  <p style="font-family:var(--mono); font-size:10px; color:var(--border); letter-spacing:0.08em; margin-top:0.5rem;">Indyk & Motwani (1998) · Charikar (2002) · Broder et al. (1998)</p>
+</footer>
+
+<script>
+// ============================================================
+// UTILITY
+// ============================================================
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (s >>> 0) / 0x100000000;
+  };
+}
+
+function gaussianRand(rng) {
+  // Box-Muller
+  let u = 0, v = 0;
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function dot(a, b) {
+  return a.reduce((s, ai, i) => s + ai * b[i], 0);
+}
+
+function hashWord(word, seed, sigma) {
+  let h = seed ^ 0;
+  for (let i = 0; i < word.length; i++) {
+    h = Math.imul(h ^ word.charCodeAt(i), 2246822519);
+    h = Math.imul(h ^ (h >>> 13), 3266489917);
+  }
+  h = (h ^ (h >>> 16)) >>> 0;
+  return h % sigma;
+}
+
+function parseSet(str) {
+  return [...new Set(str.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x)))];
+}
+
+function jaccard(A, B) {
+  const sa = new Set(A), sb = new Set(B);
+  let inter = 0;
+  for (const x of sa) if (sb.has(x)) inter++;
+  return inter / (sa.size + sb.size - inter);
+}
+
+function switchTab(group, tab) {
+  document.querySelectorAll(`[id^="${group}-tab-"]`).forEach(p => p.classList.remove('active'));
+  const t = document.getElementById(`${group}-tab-${tab}`);
+  if (t) t.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const oc = b.getAttribute('onclick') || '';
+    if (oc.includes(`'${group}'`) && oc.includes(`'${tab}'`)) b.classList.add('active');
+    else if (oc.includes(`'${group}'`)) b.classList.remove('active');
+  });
+}
+
+// ============================================================
+// PLEB CALCULATOR
+// ============================================================
+function calcPLEB() {
+  const eps = parseFloat(document.getElementById('pleb-eps').value) || 4;
+  const dmin = parseFloat(document.getElementById('pleb-dmin').value) || 1;
+  const dmax = parseFloat(document.getElementById('pleb-dmax').value) || 1000;
+  const delta = Math.sqrt(eps);
+  const k = Math.ceil(1 + Math.log(dmax/dmin) / Math.log(delta));
+  const ratio = dmax/dmin;
+
+  let html = `<div class="result-box">
+    <div class="result-item"><div class="result-label">ε (approx factor)</div><div class="result-value sm">${eps}</div></div>
+    <div class="result-item"><div class="result-label">δ = √ε</div><div class="result-value sm">${delta.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">PLEB instances k</div><div class="result-value">${k}</div></div>
+    <div class="result-item"><div class="result-label">D_max/D_min</div><div class="result-value sm">${ratio.toFixed(1)}</div></div>
+  </div>`;
+
+  html += `<table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>#</th><th>Radius r</th><th>Inner r₁</th><th>Outer r₂ = δr</th></tr></thead>
+    <tbody>`;
+
+  let r = dmin / delta;
+  for (let i = 0; i < Math.min(k, 12); i++) {
+    html += `<tr class="${i===0?'highlight':''}">
+      <td class="val-gold">${i}</td>
+      <td>${r.toFixed(4)}</td>
+      <td>${r.toFixed(4)}</td>
+      <td class="val-cyan">${(r*delta).toFixed(4)}</td>
+    </tr>`;
+    r *= delta;
+  }
+  if (k > 12) html += `<tr><td colspan="4" style="color:var(--text-dim); text-align:center; font-style:italic;">… ${k-12} more instances …</td></tr>`;
+  html += `</tbody></table>
+
+  <div class="callout warn" style="margin-top:1rem;">
+    <strong>Key bound:</strong> r*/δ &lt; OPT ≤ dist(p*,q) ≤ δ·r* 
+    → ratio = δ·r* / (r*/δ) = δ² = ε = ${eps}. 
+    Binary search needs O(log ${k}) = O(${Math.ceil(Math.log2(k))}) PLEB queries.
+  </div>`;
+
+  document.getElementById('pleb-output').innerHTML = html;
+}
+
+// ============================================================
+// HYPERPLANE VISUALIZER (2D)
+// ============================================================
+let hpState = { hyperplanes: [], points: [], queryPt: null };
+
+function drawHyperplane() {
+  const k = parseInt(document.getElementById('hp-k').value) || 3;
+  const n = parseInt(document.getElementById('hp-n').value) || 20;
+  const seed = parseInt(document.getElementById('hp-seed').value) || 42;
+  const canvas = document.getElementById('hp-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, scale = 80;
+  const rng = seededRandom(seed);
+
+  // Generate hyperplanes (lines through origin in 2D)
+  const hps = [];
+  for (let i = 0; i < k; i++) {
+    hps.push([gaussianRand(rng), gaussianRand(rng)]);
+  }
+
+  // Generate points
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    pts.push([(rng()-0.5)*7, (rng()-0.5)*7]);
+  }
+
+  hpState = { hyperplanes: hps, points: pts, queryPt: null };
+
+  renderHPCanvas(ctx, W, H, cx, cy, scale, hps, pts, null);
+
+  canvas.onclick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W/rect.width);
+    const my = (e.clientY - rect.top) * (H/rect.height);
+    const qx = (mx - cx) / scale;
+    const qy = -(my - cy) / scale;
+    hpState.queryPt = [qx, qy];
+    renderHPCanvas(ctx, W, H, cx, cy, scale, hps, pts, [qx, qy]);
+
+    const qCode = hps.map(hp => dot([qx,qy], hp) >= 0 ? 1 : 0).join('');
+    const neighbors = pts.filter(p => hps.map(hp => dot(p, hp) >= 0 ? 1 : 0).join('') === qCode);
+    document.getElementById('hp-viz-result').innerHTML =
+      `<div class="callout purple"><strong>Query hash code:</strong> ${qCode} → ${neighbors.length} points in same bucket.</div>`;
+  };
+}
+
+function getRegionColor(code, k, alpha) {
+  // map k-bit code to hue
+  const n = parseInt(code, 2);
+  const hue = (n / Math.pow(2, k)) * 360;
+  return `hsla(${hue}, 60%, 50%, ${alpha})`;
+}
+
+function renderHPCanvas(ctx, W, H, cx, cy, scale, hps, pts, qPt) {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#1a1d23';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw colored regions
+  const imgData = ctx.createImageData(W, H);
+  for (let px = 0; px < W; px++) {
+    for (let py = 0; py < H; py++) {
+      const wx = (px - cx) / scale;
+      const wy = -(py - cy) / scale;
+      const code = hps.reduce((acc, hp, i) => acc + (dot([wx,wy], hp) >= 0 ? 1 << i : 0), 0);
+      const hue = (code / Math.pow(2, hps.length)) * 300 + 180;
+      const idx = (py * W + px) * 4;
+      // convert HSL to RGB
+      const [r, g, b] = hslToRgb(hue/360, 0.4, 0.18);
+      imgData.data[idx] = r; imgData.data[idx+1] = g; imgData.data[idx+2] = b; imgData.data[idx+3] = 255;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  // Draw hyperplane lines
+  const colors = ['#e8c56d','#5ed3c8','#a78bfa','#5ecf8a','#e05252','#f9a03f'];
+  for (let i = 0; i < hps.length; i++) {
+    const [nx, ny] = hps[i];
+    const mag = Math.sqrt(nx*nx + ny*ny);
+    const dx = -ny/mag, dy = nx/mag; // perpendicular = direction of line
+    const t = 400;
+    ctx.beginPath();
+    ctx.moveTo(cx + dx*t*scale/80, cy - dy*t*scale/80);
+    ctx.lineTo(cx - dx*t*scale/80, cy + dy*t*scale/80);
+    ctx.strokeStyle = colors[i % colors.length];
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.6;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    // label
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.font = '11px JetBrains Mono, monospace';
+    ctx.fillText(`Z${i}`, cx + dx*100 + 5, cy - dy*100);
+  }
+
+  // Draw points
+  const qCode = qPt ? hps.map(hp => dot(qPt, hp) >= 0 ? 1 : 0).join('') : null;
+  for (const p of pts) {
+    const code = hps.map(hp => dot(p, hp) >= 0 ? 1 : 0).join('');
+    const inQ = qCode && code === qCode;
+    ctx.beginPath();
+    ctx.arc(cx + p[0]*scale, cy - p[1]*scale, inQ ? 6 : 4, 0, Math.PI*2);
+    ctx.fillStyle = inQ ? '#5ecf8a' : '#5ed3c8';
+    ctx.globalAlpha = inQ ? 1 : 0.7;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw query
+  if (qPt) {
+    ctx.beginPath();
+    ctx.arc(cx + qPt[0]*scale, cy - qPt[1]*scale, 8, 0, Math.PI*2);
+    ctx.fillStyle = '#e8c56d';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = 'rgba(42,47,58,0.8)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+}
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) { r = g = b = l; } else {
+    const q = l < 0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+    r = hue2rgb(p,q,h+1/3); g = hue2rgb(p,q,h); b = hue2rgb(p,q,h-1/3);
+  }
+  return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
+function hue2rgb(p,q,t) {
+  if(t<0)t+=1; if(t>1)t-=1;
+  if(t<1/6)return p+(q-p)*6*t;
+  if(t<1/2)return q;
+  if(t<2/3)return p+(q-p)*(2/3-t)*6;
+  return p;
+}
+
+// ============================================================
+// HYPERPLANE TRACE
+// ============================================================
+function runHPTrace() {
+  const ptsRaw = document.getElementById('hp-points').value.split(';').map(s => s.trim().split(',').map(Number)).filter(p => p.length === 2);
+  const qRaw = document.getElementById('hp-query').value.split(',').map(Number);
+  const k = parseInt(document.getElementById('hp-k2').value) || 3;
+  const l = parseInt(document.getElementById('hp-l').value) || 2;
+  const seed = parseInt(document.getElementById('hp-seed2').value) || 7;
+  const rng = seededRandom(seed);
+
+  if (ptsRaw.length === 0 || qRaw.length !== 2) {
+    document.getElementById('hp-trace-output').innerHTML = '<p class="val-red">Invalid input.</p>';
+    return;
+  }
+
+  // Generate k*l hyperplanes
+  const G = [];
+  for (let j = 0; j < l; j++) {
+    const hps = [];
+    for (let i = 0; i < k; i++) hps.push([gaussianRand(rng), gaussianRand(rng)]);
+    G.push(hps);
+  }
+
+  const getCode = (p, hps) => hps.map(hp => dot(p, hp) >= 0 ? '1' : '0').join('');
+  const qCodes = G.map(hps => getCode(qRaw, hps));
+
+  let html = '';
+  for (let j = 0; j < l; j++) {
+    html += `<div style="margin-bottom:1.5rem;">
+      <div style="font-family:var(--mono); font-size:10px; color:var(--gold-dim); letter-spacing:0.15em; margin-bottom:0.5rem;">SET ${j} — HYPERPLANES</div>
+      <table class="trace-table">
+        <thead><tr><th>Point</th>`;
+    for (let i = 0; i < k; i++) html += `<th>Z${j}${i} = (${G[j][i].map(x=>x.toFixed(2)).join(',')})</th>`;
+    html += `<th>Code g${j}(·)</th><th>Same as q?</th></tr></thead><tbody>`;
+
+    // Query row
+    html += `<tr class="gold-row"><td class="val-gold">q=(${qRaw.join(',')})</td>`;
+    for (const hp of G[j]) {
+      const d = dot(qRaw, hp);
+      html += `<td>${d.toFixed(3)} → <span class="${d>=0?'val-green':'val-red'}">${d>=0?'1':'0'}</span></td>`;
+    }
+    html += `<td class="val-gold">${qCodes[j]}</td><td>—</td></tr>`;
+
+    for (const p of ptsRaw) {
+      const code = getCode(p, G[j].map(hp => hp));
+      const match = code === qCodes[j];
+      html += `<tr class="${match?'highlight':''}"><td class="val-cyan">(${p.join(',')})</td>`;
+      for (const hp of G[j]) {
+        const d = dot(p, hp);
+        html += `<td>${d.toFixed(3)} → <span class="${d>=0?'val-green':'val-red'}">${d>=0?'1':'0'}</span></td>`;
+      }
+      html += `<td class="val-purple">${code}</td><td>${match?'<span class="val-green">✓ MATCH</span>':'<span style="color:var(--border);">—</span>'}</td></tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+
+  // Summary
+  const allMatches = new Set();
+  for (let j = 0; j < l; j++) {
+    for (const p of ptsRaw) {
+      if (getCode(p, G[j]) === qCodes[j]) allMatches.add(p.join(','));
+    }
+  }
+  html += `<div class="result-box">
+    <div class="result-item"><div class="result-label">ℓ (sets)</div><div class="result-value sm">${l}</div></div>
+    <div class="result-item"><div class="result-label">k (hyperplanes/set)</div><div class="result-value sm">${k}</div></div>
+    <div class="result-item"><div class="result-label">Candidate points</div><div class="result-value purple">${allMatches.size}</div></div>
+    <div class="result-item"><div class="result-label">Total points</div><div class="result-value sm">${ptsRaw.length}</div></div>
+  </div>`;
+
+  document.getElementById('hp-trace-output').innerHTML = html;
+}
+
+// ============================================================
+// HYPERPLANE PARAMS
+// ============================================================
+function calcHPParams() {
+  const tMax = parseFloat(document.getElementById('hp-theta-max').value) || 30;
+  const tMin = parseFloat(document.getElementById('hp-hp-theta-min') ? document.getElementById('hp-hp-theta-min').value : document.getElementById('hp-theta-min').value) || 90;
+  const delta = parseFloat(document.getElementById('hp-delta').value) || 0.1;
+
+  const alphaMin = 1 - tMax / 180;
+  const betaMax = 1 - tMin / 180;
+
+  // k: βmax^k ≈ 1/n → k = -log_{βmax}(n). We solve for expected 1 bad point per bucket.
+  // Use k = log(1/n) / log(βmax) but n unknown; show formula.
+  // ℓ: (1-αmin^k)^ℓ ≈ δ → ℓ = log(δ)/log(1-αmin^k)
+
+  // For a concrete example, use n=1000
+  const n = 1000;
+  const k = Math.ceil(-Math.log(n) / Math.log(betaMax));
+  const alphaK = Math.pow(alphaMin, k);
+  const l = Math.ceil(Math.log(delta) / Math.log(1 - alphaK));
+  const fnRate = Math.pow(1 - alphaK, l);
+  const expBad = n * Math.pow(betaMax, k);
+
+  let html = `<div class="result-box" style="flex-wrap:wrap; gap:1.5rem;">
+    <div class="result-item"><div class="result-label">α_min = 1−θ_max/π</div><div class="result-value sm">${alphaMin.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">β_max = 1−θ_min/π</div><div class="result-value sm">${betaMax.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">k (hyperplanes)</div><div class="result-value">${k}</div></div>
+    <div class="result-item"><div class="result-label">ℓ (sets)</div><div class="result-value">${l}</div></div>
+    <div class="result-item"><div class="result-label">FN rate</div><div class="result-value sm ${fnRate<0.2?'good':'bad'}">${fnRate.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">E[bad/bucket] (n=1k)</div><div class="result-value sm">${expBad.toFixed(3)}</div></div>
+  </div>
+
+  <table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>Property</th><th>Formula</th><th>Value (n=1000)</th></tr></thead>
+    <tbody>
+      <tr><td class="val-gold">α^k (near collision per set)</td><td>α_min^k</td><td class="val-green">${alphaK.toFixed(6)}</td></tr>
+      <tr><td class="val-gold">β^k (far collision per set)</td><td>β_max^k = 1/n</td><td class="val-red">${Math.pow(betaMax,k).toFixed(6)}</td></tr>
+      <tr><td class="val-gold">k setting rule</td><td>k = ⌈−ln n / ln β_max⌉</td><td>${k}</td></tr>
+      <tr><td class="val-gold">ℓ setting rule</td><td>ℓ = ⌈ln δ / ln(1−α^k)⌉</td><td>${l}</td></tr>
+      <tr><td class="val-gold">κ = ln α / ln β</td><td>—</td><td>${(Math.log(alphaMin)/Math.log(betaMax)).toFixed(4)}</td></tr>
+    </tbody>
+  </table>
+  <div class="callout" style="margin-top:1rem;">
+    <strong>Gap matters:</strong> θ_max=${tMax}° → α=${alphaMin.toFixed(3)}, θ_min=${tMin}° → β=${betaMax.toFixed(3)}. Larger gap between α and β → smaller k, ℓ → faster and lighter index.
+  </div>`;
+
+  document.getElementById('hp-params-output').innerHTML = html;
+}
+
+// ============================================================
+// LSH THEORY SOLVER
+// ============================================================
+function calcLSHTheory() {
+  const alpha = parseFloat(document.getElementById('lsh-alpha').value) || 0.8;
+  const beta = parseFloat(document.getElementById('lsh-beta').value) || 0.2;
+  const n = parseInt(document.getElementById('lsh-n').value) || 1000;
+
+  if (alpha <= beta) {
+    document.getElementById('lsh-theory-output').innerHTML = '<div class="callout warn"><strong>Invalid:</strong> α must be greater than β for a useful LSH family.</div>';
+    return;
+  }
+
+  const kappa = Math.log(alpha) / Math.log(beta);
+  const k = Math.ceil(-Math.log(n) / Math.log(beta));
+  const l = Math.ceil(Math.pow(n, kappa));
+  const betaK = Math.pow(beta, k);
+  const alphaK = Math.pow(alpha, k);
+  const probNearInBucket = alphaK;
+  const probAtLeastOne = 1 - Math.pow(1 - alphaK, l);
+  const expFarPoints = n * betaK;
+  const space = n + Math.pow(n, 1 + kappa);
+
+  let html = `<div class="result-box" style="flex-wrap:wrap; gap:1.5rem;">
+    <div class="result-item"><div class="result-label">κ = ln α / ln β</div><div class="result-value">${kappa.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">k = ⌈−ln n / ln β⌉</div><div class="result-value">${k}</div></div>
+    <div class="result-item"><div class="result-label">ℓ = n^κ</div><div class="result-value">${l}</div></div>
+    <div class="result-item"><div class="result-label">Space O(n^{1+κ})</div><div class="result-value sm">${space.toFixed(0)}</div></div>
+  </div>
+
+  <table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>Quantity</th><th>Formula</th><th>Value</th><th>Interpretation</th></tr></thead>
+    <tbody>
+      <tr class="gold-row"><td class="val-gold">β^k</td><td>β^k = 1/n</td><td class="val-red">${betaK.toFixed(6)}</td><td>Prob far point lands in same bucket (≈1/n ✓)</td></tr>
+      <tr><td class="val-gold">E[|X|]</td><td>n · β^k</td><td class="val-cyan">${expFarPoints.toFixed(3)}</td><td>Expected far points in bucket (want ≤ 1)</td></tr>
+      <tr class="gold-row"><td class="val-gold">α^k</td><td>α^k = n^{−κ}</td><td class="val-green">${alphaK.toFixed(6)}</td><td>Prob near point lands in same bucket (per set)</td></tr>
+      <tr><td class="val-gold">Pr[in ≥1 bucket]</td><td>1−(1−α^k)^ℓ</td><td class="val-green">${probAtLeastOne.toFixed(4)}</td><td>Prob of finding the near point (want ≥ 1/2)</td></tr>
+      <tr class="gold-row"><td class="val-gold">Pr[|X|≥2ℓ]</td><td>≤ E[|X|]/(2ℓ)</td><td class="val-green">${(expFarPoints/(2*l)).toFixed(4)}</td><td>Prob too many bad points (want ≤ 1/2)</td></tr>
+      <tr><td class="val-gold">Overall success</td><td>≥ (1/2)·(1/2)</td><td class="val-gold">≥ 1/4</td><td>Both conditions hold simultaneously</td></tr>
+    </tbody>
+  </table>`;
+
+  document.getElementById('lsh-theory-output').innerHTML = html;
+}
+
+// ============================================================
+// MINHASH — CHARACTERISTIC MATRIX
+// ============================================================
+function buildCharMatrix() {
+  const sA = parseSet(document.getElementById('mh-setA').value);
+  const sB = parseSet(document.getElementById('mh-setB').value);
+  const sC = parseSet(document.getElementById('mh-setC').value);
+  const sD = parseSet(document.getElementById('mh-setD').value);
+  const sets = [sA, sB, sC, sD];
+  const labels = ['A','B','C','D'];
+  const universe = [...new Set(sets.flat())].sort((a,b)=>a-b);
+
+  // Matrix
+  let html = '<div style="overflow-x:auto;"><table class="char-matrix"><thead><tr><td class="elem">elem</td>';
+  for (const l of labels) html += `<th>${l}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (const e of universe) {
+    html += `<tr><td class="elem">${e}</td>`;
+    for (const s of sets) {
+      const has = s.includes(e);
+      html += `<td class="${has?'one':'zero'}">${has?'1':'0'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+
+  // Jaccard matrix
+  html += '<div style="margin-top:1.5rem; font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:0.5rem;">JACCARD SIMILARITY MATRIX</div>';
+  html += '<div style="overflow-x:auto;"><table class="char-matrix"><thead><tr><td class="elem">JS</td>';
+  for (const l of labels) html += `<th>${l}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (let i = 0; i < 4; i++) {
+    html += `<tr><td class="elem">${labels[i]}</td>`;
+    for (let j = 0; j < 4; j++) {
+      const js = jaccard(sets[i], sets[j]);
+      const good = js > 0.3;
+      html += `<td class="${i===j?'elem':''}" style="color:${i===j?'var(--gold-dim)':good?'var(--green)':'var(--text-dim)'};">${js.toFixed(3)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+
+  html += `<div class="callout" style="margin-top:1rem;">
+    <strong>Universe size:</strong> ${universe.length} elements. 
+    JS(A,B) = |{${sA.filter(x=>sB.includes(x)).join(',')}}| / |{${[...new Set([...sA,...sB])].sort((a,b)=>a-b).join(',')}}| = ${(jaccard(sA,sB)).toFixed(3)}
+  </div>`;
+
+  document.getElementById('mh-matrix-output').innerHTML = html;
+}
+
+// ============================================================
+// MINHASH SIGNATURE TRACE
+// ============================================================
+function runMinHashTrace() {
+  const sA = parseSet(document.getElementById('mh-sigA').value);
+  const sB = parseSet(document.getElementById('mh-sigB').value);
+  const l = parseInt(document.getElementById('mh-l').value) || 6;
+  const seed = parseInt(document.getElementById('mh-seed').value) || 42;
+
+  const universe = [...new Set([...sA,...sB])].sort((a,b)=>a-b);
+  const sigma = Math.max(...universe) + 10;
+  const actualJS = jaccard(sA, sB);
+
+  // Compute signatures
+  const sigA = new Array(l).fill(Infinity);
+  const sigB = new Array(l).fill(Infinity);
+
+  for (let r = 0; r < l; r++) {
+    for (const w of sA) {
+      const hv = hashWord(String(w), seed * (r+1) + r * 997, sigma * 10);
+      if (hv < sigA[r]) sigA[r] = hv;
+    }
+    for (const w of sB) {
+      const hv = hashWord(String(w), seed * (r+1) + r * 997, sigma * 10);
+      if (hv < sigB[r]) sigB[r] = hv;
+    }
+  }
+
+  const matches = sigA.filter((v,i) => v === sigB[i]).length;
+  const estJS = matches / l;
+
+  // Signature display
+  let html = `<div style="margin:1rem 0;">
+    <div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:0.5rem;">MINHASH SIGNATURES (ℓ=${l})</div>`;
+
+  // Row for A
+  html += `<div class="sig-row"><div class="sig-label">Set A ↓</div>`;
+  for (let r = 0; r < l; r++) {
+    const m = sigA[r] === sigB[r];
+    html += `<div class="sig-bit ${m?'match':'one'}" title="h${r}(A)=${sigA[r]}">${sigA[r] % 99}</div>`;
+  }
+  html += '</div>';
+
+  html += `<div class="sig-row"><div class="sig-label">Set B ↓</div>`;
+  for (let r = 0; r < l; r++) {
+    const m = sigA[r] === sigB[r];
+    html += `<div class="sig-bit ${m?'match':'zero'}" title="h${r}(B)=${sigB[r]}">${sigB[r] % 99}</div>`;
+  }
+  html += '</div>';
+
+  html += `<div class="sig-row"><div class="sig-label">Match?</div>`;
+  for (let r = 0; r < l; r++) {
+    const m = sigA[r] === sigB[r];
+    html += `<div class="sig-bit" style="border:none; font-size:14px;">${m?'<span class="val-green">✓</span>':'<span class="val-red">✗</span>'}</div>`;
+  }
+  html += '</div></div>';
+
+  // Detailed table
+  html += `<table class="trace-table">
+    <thead><tr><th>r</th><th>minHash_r(A)</th><th>minHash_r(B)</th><th>Match?</th></tr></thead>
+    <tbody>`;
+  for (let r = 0; r < l; r++) {
+    const m = sigA[r] === sigB[r];
+    html += `<tr class="${m?'highlight':''}">
+      <td class="val-gold">${r}</td>
+      <td class="val-cyan">${sigA[r]}</td>
+      <td class="val-purple">${sigB[r]}</td>
+      <td>${m?'<span class="val-green">✓ MATCH</span>':'<span style="color:var(--border);">—</span>'}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+
+  <div class="result-box">
+    <div class="result-item"><div class="result-label">Matches</div><div class="result-value">${matches}/${l}</div></div>
+    <div class="result-item"><div class="result-label">JS_min estimate</div><div class="result-value purple">${estJS.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">Actual JS(A,B)</div><div class="result-value actual">${actualJS.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">|Error|</div><div class="result-value sm ${Math.abs(estJS-actualJS)<0.15?'good':'bad'}">${Math.abs(estJS-actualJS).toFixed(4)}</div></div>
+  </div>`;
+
+  document.getElementById('mh-sig-output').innerHTML = html;
+}
+
+// ============================================================
+// MINHASH ACCURACY vs ℓ
+// ============================================================
+function runMHAccuracy() {
+  const sA = parseSet(document.getElementById('mh-accA').value);
+  const sB = parseSet(document.getElementById('mh-accB').value);
+  const maxL = parseInt(document.getElementById('mh-maxl').value) || 100;
+  const actualJS = jaccard(sA, sB);
+  const sigma = Math.max(...[...sA,...sB]) + 20;
+  const TRIALS = 10;
+  const lValues = [5,10,20,40,70,100,150,200,300,500].filter(x=>x<=maxL);
+  if (!lValues.includes(maxL)) lValues.push(maxL);
+
+  let html = `<div class="callout" style="margin-bottom:1rem;"><strong>Actual JS(A,B) = ${actualJS.toFixed(4)}.</strong> Each row: average over ${TRIALS} independent trials.</div>
+  <table class="trace-table">
+    <thead><tr><th>ℓ</th><th>Avg Estimate</th><th>Std Dev</th><th>|Error|</th><th>Hoeffding bound (λ=0.1)</th></tr></thead>
+    <tbody>`;
+
+  for (const l of lValues) {
+    const estimates = [];
+    for (let t = 0; t < TRIALS; t++) {
+      const sigA = new Array(l).fill(Infinity), sigB = new Array(l).fill(Infinity);
+      for (let r = 0; r < l; r++) {
+        const seedR = (t+1) * 997 + r * 13 + 1;
+        for (const w of sA) { const hv = hashWord(String(w), seedR, sigma*10); if(hv < sigA[r]) sigA[r] = hv; }
+        for (const w of sB) { const hv = hashWord(String(w), seedR, sigma*10); if(hv < sigB[r]) sigB[r] = hv; }
+      }
+      estimates.push(sigA.filter((v,i)=>v===sigB[i]).length / l);
+    }
+    const avg = estimates.reduce((a,b)=>a+b,0)/TRIALS;
+    const std = Math.sqrt(estimates.reduce((a,b)=>a+(b-avg)**2,0)/TRIALS);
+    const err = Math.abs(avg-actualJS);
+    const hoeff = 2*Math.exp(-l*0.01/2);
+    html += `<tr>
+      <td class="val-gold">${l}</td>
+      <td class="val-cyan">${avg.toFixed(4)}</td>
+      <td>${std.toFixed(4)}</td>
+      <td class="${err<0.1?'val-green':'val-red'}">${err.toFixed(4)}</td>
+      <td class="${hoeff<0.1?'val-green':'val-cyan'}">${hoeff.toFixed(4)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+  <div class="callout" style="margin-top:1rem;"><strong>Hoeffding:</strong> Pr[|JS_min − JS| > 0.1] ≤ 2e^{−ℓ·0.01/2}. As ℓ increases, both empirical error and the bound converge to 0.</div>`;
+
+  document.getElementById('mh-acc-output').innerHTML = html;
+}
+
+// ============================================================
+// HOEFFDING CALCULATOR
+// ============================================================
+function calcHoeffding() {
+  const lambda = parseFloat(document.getElementById('hf-lambda').value) || 0.1;
+  const alpha = parseFloat(document.getElementById('hf-alpha').value) || 0.05;
+  const l = Math.ceil(2 * Math.log(2/alpha) / (lambda*lambda));
+
+  let html = `<div class="result-box">
+    <div class="result-item"><div class="result-label">λ (max error)</div><div class="result-value sm">${lambda}</div></div>
+    <div class="result-item"><div class="result-label">α (failure prob)</div><div class="result-value sm">${alpha}</div></div>
+    <div class="result-item"><div class="result-label">ℓ needed</div><div class="result-value">${l}</div></div>
+  </div>
+
+  <div class="math-block" style="margin-top:1rem;">
+Pr[|JS_min − JS| > λ] ≤ 2e^{−ℓλ²/2}
+
+Set 2e^{−ℓλ²/2} ≤ α:
+  ℓ ≥ (2/λ²) · ln(2/α)
+  ℓ ≥ (2/${lambda**2}) · ln(${(2/alpha).toFixed(4)})
+  ℓ ≥ ${(2/(lambda**2) * Math.log(2/alpha)).toFixed(2)}
+  ℓ = ${l}  <span class="comment">← ceiling</span>
+  </div>
+
+  <table class="trace-table" style="margin-top:1rem;">
+    <thead><tr><th>λ</th><th>α = 0.1</th><th>α = 0.05</th><th>α = 0.01</th></tr></thead>
+    <tbody>`;
+
+  for (const lam of [0.05, 0.1, 0.15, 0.2]) {
+    html += `<tr ${lam===lambda?'class="highlight"':''}>
+      <td class="val-gold">${lam}</td>
+      <td>${Math.ceil(2*Math.log(20)/(lam*lam))}</td>
+      <td>${Math.ceil(2*Math.log(40)/(lam*lam))}</td>
+      <td>${Math.ceil(2*Math.log(200)/(lam*lam))}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+
+  document.getElementById('hf-output').innerHTML = html;
+}
+
+// ============================================================
+// S-CURVE
+// ============================================================
+function drawSCurve() {
+  const l = parseInt(document.getElementById('sc-l').value) || 100;
+  const b = parseInt(document.getElementById('sc-b').value) || 20;
+  if (b > l) { document.getElementById('sc-output').innerHTML = '<div class="callout warn"><strong>b must be ≤ ℓ</strong></div>'; return; }
+  const r = l / b;
+  const t = Math.pow(1/b, 1/r);
+
+  const canvas = document.getElementById('scurve-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { left: 55, right: 30, top: 30, bottom: 50 };
+  const cW = W - pad.left - pad.right, cH = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#1a1d23';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(42,47,58,0.8)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) {
+    const x = pad.left + i/10 * cW;
+    const y = pad.top + i/10 * cH;
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top+cH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left+cW, y); ctx.stroke();
+  }
+
+  // P(s) curve
+  ctx.beginPath();
+  ctx.strokeStyle = '#a78bfa';
+  ctx.lineWidth = 2.5;
+  for (let i = 0; i <= 200; i++) {
+    const s = i/200;
+    const ps = 1 - Math.pow(1 - Math.pow(s, r), b);
+    const cx2 = pad.left + s * cW;
+    const cy2 = pad.top + (1-ps) * cH;
+    if (i === 0) ctx.moveTo(cx2, cy2); else ctx.lineTo(cx2, cy2);
+  }
+  ctx.stroke();
+
+  // Threshold line
+  const tx = pad.left + t * cW;
+  ctx.beginPath();
+  ctx.strokeStyle = '#e8c56d';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.moveTo(tx, pad.top);
+  ctx.lineTo(tx, pad.top + cH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Threshold horizontal at 0.5
+  const halfY = pad.top + 0.5*cH;
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(232,197,109,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]);
+  ctx.moveTo(pad.left, halfY);
+  ctx.lineTo(pad.left+cW, halfY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Labels
+  ctx.fillStyle = '#7a8090';
+  ctx.font = '10px JetBrains Mono, monospace';
+  for (let i = 0; i <= 10; i++) {
+    ctx.fillText((i*0.1).toFixed(1), pad.left + i/10*cW - 6, pad.top+cH+18);
+    ctx.fillText((1-i*0.1).toFixed(1), pad.left-36, pad.top + i/10*cH + 4);
+  }
+  ctx.fillStyle = '#d4d8e2';
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.fillText('s (Jaccard similarity)', pad.left + cW/2 - 70, H - 8);
+  ctx.save(); ctx.translate(14, pad.top + cH/2 + 40); ctx.rotate(-Math.PI/2);
+  ctx.fillText('P(s) = Pr[candidate pair]', 0, 0); ctx.restore();
+
+  // Threshold label
+  ctx.fillStyle = '#e8c56d';
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.fillText(`t ≈ ${t.toFixed(3)}`, tx+4, pad.top+14);
+
+  // Stats
+  const ps_at_t = 1 - Math.pow(1 - Math.pow(t, r), b);
+  document.getElementById('sc-output').innerHTML = `
+  <div class="result-box">
+    <div class="result-item"><div class="result-label">ℓ</div><div class="result-value sm">${l}</div></div>
+    <div class="result-item"><div class="result-label">b (bands)</div><div class="result-value sm">${b}</div></div>
+    <div class="result-item"><div class="result-label">r = ℓ/b (rows/band)</div><div class="result-value sm">${r.toFixed(1)}</div></div>
+    <div class="result-item"><div class="result-label">Threshold t</div><div class="result-value purple">${t.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">P(t) at threshold</div><div class="result-value sm">${ps_at_t.toFixed(4)}</div></div>
+  </div>
+  <div class="callout purple" style="margin-top:1rem;">
+    <strong>Formula:</strong> P(s) = 1 − (1 − s^r)^b, t = (1/b)^{1/r} = (1/b)^{b/ℓ} = ${t.toFixed(4)}.
+    Pairs with s >> ${t.toFixed(2)} are almost certainly detected; pairs with s << ${t.toFixed(2)} are almost certainly ignored.
+  </div>`;
+}
+
+// ============================================================
+// BAND TRACE
+// ============================================================
+function runBandTrace() {
+  const rawA = document.getElementById('bd-sigA').value.split(',').map(Number).filter(x=>!isNaN(x));
+  const rawB = document.getElementById('bd-sigB').value.split(',').map(Number).filter(x=>!isNaN(x));
+  const b = parseInt(document.getElementById('bd-b').value) || 5;
+
+  if (rawA.length !== rawB.length) {
+    document.getElementById('bd-trace-output').innerHTML = '<div class="callout warn"><strong>Signatures must be the same length.</strong></div>';
+    return;
+  }
+  const l = Math.min(rawA.length, rawB.length);
+  const r = Math.floor(l / b);
+  if (r < 1) {
+    document.getElementById('bd-trace-output').innerHTML = '<div class="callout warn"><strong>b is too large for this signature length.</strong></div>';
+    return;
+  }
+
+  const s = rawA.filter((v,i) => v === rawB[i]).length / l;
+  const t = Math.pow(1/b, b/l);
+  let candidatePair = false;
+
+  let html = `<div style="margin-bottom:1.5rem;">
+    <div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:0.8rem;">BAND DECOMPOSITION (b=${b}, r=${r}, ℓ=${l})</div>
+    <div class="band-grid">`;
+
+  for (let bi = 0; bi < b; bi++) {
+    const start = bi * r, end = start + r;
+    const bandA = rawA.slice(start, end);
+    const bandB = rawB.slice(start, end);
+    const bandMatch = bandA.every((v,i) => v === bandB[i]);
+    if (bandMatch) candidatePair = true;
+
+    html += `<div class="band-block ${bandMatch?'':''}">
+      <div class="band-header" style="${bandMatch?'color:var(--green); border-color:rgba(94,207,138,0.3);':''}">BAND ${bi}</div>`;
+    for (let ri = 0; ri < r; ri++) {
+      const rowMatch = rawA[start+ri] === rawB[start+ri];
+      html += `<div class="band-cell ${bandMatch?'match':''}">
+        <span style="color:var(--cyan);">${rawA[start+ri]}</span>
+        <span style="color:var(--text-dim); margin:0 4px;">|</span>
+        <span style="color:var(--purple);">${rawB[start+ri]}</span>
+        ${rowMatch?'<span class="val-green" style="margin-left:4px;">✓</span>':''}
+      </div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+
+  // Signature with band separators
+  html += `<div style="margin:1rem 0; font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:0.4rem;">FULL SIGNATURE VIEW</div>
+  <div class="sig-row" style="flex-wrap:wrap;"><div class="sig-label">A</div>`;
+  for (let i = 0; i < l; i++) {
+    if (i > 0 && i % r === 0 && i / r < b) html += `<div class="sig-bit band-sep">|</div>`;
+    const m = rawA[i] === rawB[i];
+    html += `<div class="sig-bit ${m?'match':'one'}">${rawA[i]%100}</div>`;
+  }
+  html += '</div><div class="sig-row" style="flex-wrap:wrap;"><div class="sig-label">B</div>';
+  for (let i = 0; i < l; i++) {
+    if (i > 0 && i % r === 0 && i / r < b) html += `<div class="sig-bit band-sep">|</div>`;
+    const m = rawA[i] === rawB[i];
+    html += `<div class="sig-bit ${m?'match':'zero'}">${rawB[i]%100}</div>`;
+  }
+  html += '</div>';
+
+  html += `<div class="result-box" style="margin-top:1rem;">
+    <div class="result-item"><div class="result-label">Fraction matching</div><div class="result-value sm">${s.toFixed(3)}</div></div>
+    <div class="result-item"><div class="result-label">Threshold t</div><div class="result-value sm">${t.toFixed(3)}</div></div>
+    <div class="result-item"><div class="result-label">Candidate pair?</div><div class="result-value ${candidatePair?'good':'bad'}">${candidatePair?'YES':'NO'}</div></div>
+    <div class="result-item"><div class="result-label">P(s) = Pr[detect]</div><div class="result-value purple">${(1-Math.pow(1-Math.pow(s,r),b)).toFixed(4)}</div></div>
+  </div>`;
+
+  document.getElementById('bd-trace-output').innerHTML = html;
+}
+
+// ============================================================
+// FULL WORKFLOW (MinHash + Banding)
+// ============================================================
+function runWorkflow() {
+  const docs = [
+    document.getElementById('wf-d1').value,
+    document.getElementById('wf-d2').value,
+    document.getElementById('wf-d3').value,
+    document.getElementById('wf-d4').value,
+  ].map(d => d.toLowerCase().split(/\s+/).filter(Boolean));
+
+  const l = parseInt(document.getElementById('wf-l').value) || 12;
+  const b = parseInt(document.getElementById('wf-b').value) || 4;
+  const r = Math.floor(l / b);
+  const labels = ['D1','D2','D3','D4'];
+
+  // Build vocabulary
+  const vocab = [...new Set(docs.flat())];
+  const sigma = vocab.length * 10 + 100;
+
+  // Compute signatures
+  const sigs = docs.map(doc => {
+    const sig = new Array(l).fill(Infinity);
+    for (let ri = 0; ri < l; ri++) {
+      for (const w of doc) {
+        const hv = hashWord(w, (ri+1)*997, sigma);
+        if (hv < sig[ri]) sig[ri] = hv;
+      }
+    }
+    return sig;
+  });
+
+  // Actual Jaccard
+  const jsPairs = [];
+  for (let i = 0; i < 4; i++)
+    for (let j = i+1; j < 4; j++)
+      jsPairs.push({ i, j, js: jaccard(docs[i], docs[j]) });
+
+  // Estimated Jaccard
+  const estJS = (i, j) => sigs[i].filter((v,k) => v === sigs[j][k]).length / l;
+
+  // Banding: candidate pairs
+  const candidates = new Set();
+  for (let bi = 0; bi < b; bi++) {
+    const start = bi * r, end = start + r;
+    const buckets = {};
+    for (let di = 0; di < 4; di++) {
+      const key = sigs[di].slice(start, end).join(',');
+      if (!buckets[key]) buckets[key] = [];
+      buckets[key].push(di);
+    }
+    for (const docs2 of Object.values(buckets)) {
+      if (docs2.length > 1) {
+        for (let a = 0; a < docs2.length; a++)
+          for (let b2 = a+1; b2 < docs2.length; b2++)
+            candidates.add(`${docs2[a]},${docs2[b2]}`);
+      }
+    }
+  }
+
+  // Signatures display
+  let html = `<div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; margin:1rem 0 0.5rem;">STEP 2–3: MINHASH SIGNATURES (ℓ=${l}, b=${b}, r=${r})</div>
+  <div style="overflow-x:auto; margin-bottom:1.5rem;">`;
+  for (let di = 0; di < 4; di++) {
+    html += `<div class="sig-row" style="flex-wrap:wrap;"><div class="sig-label">${labels[di]}</div>`;
+    for (let ri = 0; ri < l; ri++) {
+      if (ri > 0 && ri % r === 0 && ri/r < b) html += `<div class="sig-bit band-sep">|</div>`;
+      html += `<div class="sig-bit one" title="band ${Math.floor(ri/r)}">${sigs[di][ri]%99}</div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Pairwise results
+  html += `<div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:0.5rem;">STEP 5: PAIRWISE SIMILARITY RESULTS</div>
+  <table class="trace-table">
+    <thead><tr><th>Pair</th><th>Actual JS</th><th>Estimated JS</th><th>Candidate?</th><th>Error</th></tr></thead>
+    <tbody>`;
+
+  for (const { i, j, js } of jsPairs) {
+    const est = estJS(i, j);
+    const cand = candidates.has(`${i},${j}`);
+    html += `<tr class="${cand?'highlight':''}">
+      <td class="val-gold">(${labels[i]}, ${labels[j]})</td>
+      <td class="val-green">${js.toFixed(4)}</td>
+      <td class="val-cyan">${est.toFixed(4)}</td>
+      <td>${cand?'<span class="val-green">✓ YES</span>':'<span class="val-red">✗ NO</span>'}</td>
+      <td class="${Math.abs(js-est)<0.15?'val-green':'val-red'}">${Math.abs(js-est).toFixed(4)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+
+  <div class="callout purple" style="margin-top:1rem;">
+    <strong>Threshold t = (1/b)^{b/ℓ} = (1/${b})^{${b}/${l}} = ${Math.pow(1/b, b/l).toFixed(3)}.</strong>
+    Candidate pairs: ${candidates.size}. Banding reduces O(n²) comparisons by filtering low-similarity pairs probabilistically.
+  </div>`;
+
+  document.getElementById('wf-output').innerHTML = html;
+}
+
+// ============================================================
+// BANDING EDGE CASES
+// ============================================================
+function runBandEdge(caseType) {
+  let sigA, sigB, b, note;
+  const l = 20;
+
+  switch(caseType) {
+    case 'identical':
+      sigA = Array.from({length:l}, (_,i)=>i+1);
+      sigB = [...sigA];
+      b = 5;
+      note = 'Identical signatures → every band matches → P(s=1) = 1 − (1−1)^b = 1. Always a candidate pair.';
+      break;
+    case 'disjoint':
+      sigA = Array.from({length:l}, (_,i)=>i+1);
+      sigB = Array.from({length:l}, (_,i)=>i+100);
+      b = 5;
+      note = 'Completely different signatures → no band matches → P(s=0) = 0. Never a candidate pair.';
+      break;
+    case 'b1':
+      sigA = [3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4];
+      sigB = [3,1,4,2,5,9,2,6,5,0,5,8,9,7,3,3,2,3,8,9];
+      b = 1;
+      note = 'b=1: one giant band of r=ℓ rows. ALL rows must match → very strict (same as MinHash with k=ℓ). High precision, many false negatives.';
+      break;
+    case 'bl':
+      sigA = [3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4];
+      sigB = [3,1,4,2,5,9,2,6,5,0,5,8,9,7,3,3,2,3,8,9];
+      b = l;
+      note = 'b=ℓ: ℓ bands of r=1 row each. A single matching hash value makes them a candidate → very lenient. Low threshold, many false positives.';
+      break;
+    case 'threshold':
+      sigA = Array.from({length:l}, (_,i) => i < l*0.55 ? i : i+50);
+      sigB = Array.from({length:l}, (_,i) => i < l*0.55 ? i : i*2);
+      b = 5;
+      note = 'Near-threshold similarity (≈55%). With b=5, r=4, t=(1/5)^{1/4}≈0.67. This pair may or may not be detected — right in the uncertain zone.';
+      break;
+  }
+
+  // Mini band trace
+  const r2 = Math.floor(l / b);
+  const s = sigA.filter((v,i) => v === sigB[i]).length / l;
+  const t = Math.pow(1/b, b/l);
+  const ps = 1 - Math.pow(1 - Math.pow(s, r2), b);
+  let cand = false;
+
+  let html = `<div class="callout purple"><strong>Edge Case:</strong> ${note}</div>`;
+
+  html += `<div class="band-grid" style="margin:1rem 0;">`;
+  for (let bi = 0; bi < Math.min(b, 20); bi++) {
+    const start = bi * r2, end = start + r2;
+    const bandA = sigA.slice(start, end);
+    const bandB = sigB.slice(start, end);
+    const bMatch = bandA.every((v,i)=>v===bandB[i]);
+    if (bMatch) cand = true;
+    html += `<div class="band-block">
+      <div class="band-header" style="${bMatch?'color:var(--green);':''}">B${bi}${bMatch?' ✓':''}</div>`;
+    for (let ri=0; ri<r2; ri++) {
+      const rm = bandA[ri]===bandB[ri];
+      html += `<div class="band-cell ${bMatch?'match':''}">${bandA[ri]}|${bandB[ri]}${rm?' ✓':''}</div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  html += `<div class="result-box">
+    <div class="result-item"><div class="result-label">s (fraction match)</div><div class="result-value sm">${s.toFixed(3)}</div></div>
+    <div class="result-item"><div class="result-label">Threshold t</div><div class="result-value sm">${t.toFixed(3)}</div></div>
+    <div class="result-item"><div class="result-label">P(s) theoretical</div><div class="result-value purple">${ps.toFixed(4)}</div></div>
+    <div class="result-item"><div class="result-label">Candidate?</div><div class="result-value ${cand?'good':'bad'}">${cand?'YES':'NO'}</div></div>
+    <div class="result-item"><div class="result-label">b</div><div class="result-value sm">${b}</div></div>
+    <div class="result-item"><div class="result-label">r</div><div class="result-value sm">${r2}</div></div>
+  </div>`;
+
+  document.getElementById('bd-edge-output').innerHTML = html;
+}
+
+// ============================================================
+// COMPARISON
+// ============================================================
+function runComparison() {
+  const jsThr = parseFloat(document.getElementById('cmp-js').value) || 0.5;
+  const l = parseInt(document.getElementById('cmp-l').value) || 100;
+
+  const bValues = [5, 10, 20, 25, 50];
+  const lambda = 0.1;
+
+  let html = `<div class="callout" style="margin-bottom:1rem;"><strong>JS threshold = ${jsThr}, ℓ = ${l}.</strong> Comparing different b values for Banding, plus raw MinHash error bound.</div>
+  <table class="trace-table">
+    <thead><tr><th>b</th><th>r = ℓ/b</th><th>Threshold t</th><th>P(t-0.1) (false neg)</th><th>P(t) (edge)</th><th>P(t+0.1) (detection)</th></tr></thead>
+    <tbody>`;
+
+  for (const b of bValues) {
+    const r = Math.floor(l / b);
+    const t = Math.pow(1/b, b/l);
+    const P = s => 1 - Math.pow(1-Math.pow(Math.max(s,0),r),b);
+    const tLow = Math.max(0, t - 0.1), tHigh = Math.min(1, t + 0.1);
+    const closest = Math.abs(t - jsThr) < 0.15;
+    html += `<tr class="${closest?'highlight':''}">
+      <td class="val-gold">${b}</td>
+      <td>${r}</td>
+      <td class="${closest?'val-gold':'val-cyan'}">${t.toFixed(3)}</td>
+      <td class="val-red">${P(tLow).toFixed(4)}</td>
+      <td class="val-purple">${P(t).toFixed(4)}</td>
+      <td class="val-green">${P(tHigh).toFixed(4)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+
+  <div style="margin-top:1.5rem;">
+    <div style="font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:0.5rem;">RAW MINHASH (NO BANDING) ERROR BOUNDS</div>
+    <table class="trace-table">
+      <thead><tr><th>ℓ</th><th>Pr[|est−JS|>0.1]</th><th>Pr[|est−JS|>0.05]</th></tr></thead>
+      <tbody>`;
+
+  for (const lv of [l, Math.floor(l/2), l*2].filter(x=>x>0)) {
+    html += `<tr class="${lv===l?'gold-row':''}">
+      <td class="val-gold">${lv}</td>
+      <td class="${2*Math.exp(-lv*0.01/2)<0.1?'val-green':'val-red'}">${(2*Math.exp(-lv*0.01/2)).toFixed(4)}</td>
+      <td class="${2*Math.exp(-lv*0.0025/2)<0.1?'val-green':'val-red'}">${(2*Math.exp(-lv*0.0025/2)).toFixed(4)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table></div>
+
+  <div class="callout purple" style="margin-top:1rem;">
+    <strong>Key insight:</strong> Choose b (and r = ℓ/b) such that the threshold t = (1/b)^{b/ℓ} is close to your similarity threshold. A good b for JS threshold ${jsThr} with ℓ=${l}:
+    b ≈ ${Math.round(Math.pow(jsThr, -l/Math.round(-Math.log(1/jsThr)*l/l+1) || 1))} (adjust to make t ≈ ${jsThr}).
+  </div>`;
+
+  document.getElementById('cmp-output').innerHTML = html;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  calcPLEB();
+  drawHyperplane();
+  calcLSHTheory();
+  buildCharMatrix();
+  drawSCurve();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Misra-Gries Heavy Hitters — Interactive Reference</title>
+<style>
+  :root {
+    --bg:        #0a0c0f;
+    --bg2:       #111418;
+    --bg3:       #181c22;
+    --border:    #252b35;
+    --border2:   #313844;
+    --text:      #c8d0db;
+    --text-dim:  #5a6478;
+    --text-hi:   #e8edf5;
+    --accent:    #00d4aa;
+    --accent2:   #0099ff;
+    --accent3:   #ff6b35;
+    --accent4:   #ffd166;
+    --red:       #ff4757;
+    --green:     #00d4aa;
+    --purple:    #a855f7;
+    --mono: 'Courier New', 'Lucida Console', 'Courier', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 32px 48px 24px;
+    background: var(--bg2);
+  }
+  header .label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  header h1 {
+    font-size: 28px;
+    color: var(--text-hi);
+    font-weight: normal;
+    letter-spacing: -0.5px;
+  }
+  header h1 span { color: var(--accent); }
+  header p {
+    margin-top: 10px;
+    color: var(--text-dim);
+    font-size: 13px;
+    max-width: 700px;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  nav button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 14px 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  nav button:hover { color: var(--text); }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── SECTIONS ── */
+  .section { display: none; padding: 40px 48px; max-width: 1100px; }
+  .section.active { display: block; }
+
+  h2 {
+    font-size: 18px;
+    color: var(--text-hi);
+    font-weight: normal;
+    margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.5px;
+  }
+  h2 .tag {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+  h3 {
+    font-size: 14px;
+    color: var(--accent2);
+    font-weight: normal;
+    margin: 24px 0 10px;
+    letter-spacing: 0.5px;
+  }
+
+  p { margin-bottom: 12px; }
+
+  /* ── BOXES ── */
+  .box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .box.accent { border-left: 3px solid var(--accent); }
+  .box.warn   { border-left: 3px solid var(--accent3); }
+  .box.info   { border-left: 3px solid var(--accent2); }
+  .box.purple { border-left: 3px solid var(--purple); }
+
+  /* ── CODE ── */
+  pre {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .kw  { color: var(--accent2); }
+  .fn  { color: var(--accent); }
+  .cm  { color: var(--text-dim); }
+  .str { color: var(--accent4); }
+  .num { color: var(--accent3); }
+  .var { color: var(--purple); }
+
+  /* ── FORMULA ── */
+  .formula {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 20px;
+    margin: 12px 0;
+    font-size: 15px;
+    color: var(--text-hi);
+    text-align: center;
+  }
+  .formula .note {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    display: block;
+    text-align: left;
+  }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th {
+    background: var(--bg3);
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  tr:hover td { background: var(--bg3); }
+
+  /* ── INTERACTIVE ANIMATION ── */
+  .anim-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .anim-panel-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .anim-panel-header .title { color: var(--text-hi); font-size: 13px; }
+  .anim-panel-header .subtitle { color: var(--text-dim); font-size: 11px; }
+  .anim-body { padding: 24px; }
+
+  /* Stream display */
+  .stream-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+    min-height: 36px;
+    align-items: center;
+  }
+  .stream-token {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .stream-token.current {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    transform: scale(1.15);
+    z-index: 2;
+  }
+  .stream-token.processed {
+    color: var(--text);
+    border-color: var(--border2);
+  }
+  .stream-token.eliminated {
+    background: #ff475720;
+    color: var(--red);
+    border-color: #ff475740;
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+
+  /* Counter table */
+  .counter-table {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    min-height: 56px;
+  }
+  .counter-cell {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 16px;
+    min-width: 80px;
+    text-align: center;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .counter-cell .ckey { font-size: 16px; color: var(--text-hi); }
+  .counter-cell .cval { font-size: 20px; color: var(--accent); font-weight: bold; margin-top: 2px; }
+  .counter-cell.highlight {
+    border-color: var(--accent);
+    background: #00d4aa15;
+  }
+  .counter-cell.new-entry {
+    border-color: var(--accent2);
+    background: #0099ff15;
+    animation: pulse-in 0.4s ease;
+  }
+  .counter-cell.decrement {
+    border-color: var(--red);
+    background: #ff475715;
+    animation: pulse-warn 0.4s ease;
+  }
+  .counter-cell.removing {
+    animation: fade-out 0.5s ease forwards;
+  }
+
+  @keyframes pulse-in {
+    0%   { transform: scale(0.8); opacity: 0.5; }
+    60%  { transform: scale(1.08); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes pulse-warn {
+    0%   { background: #ff475740; }
+    100% { background: #ff475715; }
+  }
+  @keyframes fade-out {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.7); }
+  }
+
+  /* Log panel */
+  .log-panel {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    min-height: 40px;
+    color: var(--text);
+    line-height: 1.8;
+    transition: all 0.2s;
+  }
+  .log-panel .log-accent { color: var(--accent); }
+  .log-panel .log-warn   { color: var(--accent3); }
+  .log-panel .log-info   { color: var(--accent2); }
+  .log-panel .log-red    { color: var(--red); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 18px;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn.primary:hover { background: #00ffcc; border-color: #00ffcc; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn:disabled:hover { border-color: var(--border2); color: var(--text); }
+
+  /* Param inputs */
+  .param-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .param-group { display: flex; flex-direction: column; gap: 4px; }
+  .param-group label { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+  .param-group input, .param-group select {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text-hi);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 3px;
+    width: 140px;
+  }
+  .param-group input:focus, .param-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* Speed slider */
+  .speed-row { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--text-dim); }
+  .speed-row input[type=range] { width: 100px; accent-color: var(--accent); }
+
+  /* Step indicator */
+  .step-info {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .step-badge {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 14px;
+    font-size: 11px;
+  }
+  .step-badge .sbl { color: var(--text-dim); }
+  .step-badge .sbv { color: var(--text-hi); font-size: 14px; }
+
+  /* Phase labels */
+  .phase-label {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-right: 8px;
+  }
+  .phase-idle    { background: #ffffff10; color: var(--text-dim); }
+  .phase-process { background: #00d4aa20; color: var(--accent); }
+  .phase-decrement { background: #ff6b3520; color: var(--accent3); }
+  .phase-done    { background: #a855f720; color: var(--purple); }
+
+  /* Complexity table */
+  .complexity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .cg-cell {
+    background: var(--bg2);
+    padding: 16px 20px;
+    font-size: 13px;
+  }
+  .cg-cell .cg-label { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .cg-cell .cg-val { font-size: 18px; color: var(--accent); }
+  .cg-cell .cg-note { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  /* Error analysis section */
+  .bar-chart { margin: 16px 0; }
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .bar-row .bar-label { width: 80px; font-size: 12px; color: var(--text); text-align: right; flex-shrink: 0; }
+  .bar-outer { flex: 1; background: var(--bg3); border-radius: 2px; height: 20px; overflow: hidden; position: relative; }
+  .bar-inner { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .bar-actual { background: var(--accent2); }
+  .bar-est    { background: var(--accent); opacity: 0.7; }
+  .bar-thresh { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--red); opacity: 0.7; }
+  .bar-row .bar-count { width: 40px; font-size: 11px; color: var(--text-dim); }
+
+  /* Edge-case cards */
+  .edge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  @media(max-width:700px) { .edge-grid { grid-template-columns: 1fr; } }
+  .edge-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 20px;
+  }
+  .edge-card h4 { color: var(--accent3); font-size: 13px; font-weight: normal; margin-bottom: 8px; }
+  .edge-card p { font-size: 12px; color: var(--text); margin-bottom: 0; }
+  .edge-card code { color: var(--accent); }
+
+  /* Comparison table coloring */
+  .good { color: var(--green); }
+  .bad  { color: var(--red); }
+  .ok   { color: var(--accent4); }
+
+  /* Inline code */
+  code {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1px 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /* Waterfall steps */
+  .steps-list { margin: 16px 0; }
+  .step-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .step-content { flex: 1; }
+  .step-content .step-title { color: var(--text-hi); margin-bottom: 4px; }
+  .step-content .step-desc  { color: var(--text-dim); font-size: 12px; }
+
+  /* Tag chips */
+  .chip {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    margin-right: 6px;
+    text-transform: uppercase;
+  }
+  .chip-g { background: #00d4aa20; color: var(--accent); border: 1px solid #00d4aa30; }
+  .chip-b { background: #ff475720; color: var(--red);    border: 1px solid #ff475730; }
+  .chip-y { background: #ffd16620; color: var(--accent4); border: 1px solid #ffd16630; }
+
+  /* Proof section */
+  .proof-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .proof-box .proof-title { color: var(--purple); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* Progress bar in step mode */
+  .progress-bar-outer {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted var(--text-dim);
+  }
+  .tooltip::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+  }
+  .tooltip:hover::after { opacity: 1; }
+
+  /* Merge variant */
+  .merge-stream { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .merge-token { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 3px 8px; font-size: 12px; }
+  .merge-token.s1 { border-color: var(--accent2); color: var(--accent2); }
+  .merge-token.s2 { border-color: var(--accent4); color: var(--accent4); }
+
+  /* Scroll offset */
+  html { scroll-behavior: smooth; }
+
+  .anim-body label { font-size: 11px; color: var(--text-dim); }
+
+  /* Highlight row */
+  .hl { background: #00d4aa08 !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="label">// Algorithm Reference &amp; Simulator</div>
+  <h1>Misra-Gries <span>Heavy Hitters</span></h1>
+  <p>A complete interactive reference covering the algorithm, correctness proofs, complexity analysis, extensions, and all edge cases — with atomic step-by-step animation.</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('overview')">Overview</button>
+  <button onclick="showSection('algorithm')">Algorithm</button>
+  <button onclick="showSection('simulate')">Simulator</button>
+  <button onclick="showSection('errors')">Error Analysis</button>
+  <button onclick="showSection('proof')">Proof</button>
+  <button onclick="showSection('extensions')">Extensions</button>
+  <button onclick="showSection('edgecases')">Edge Cases</button>
+  <button onclick="showSection('compare')">Comparison</button>
+</nav>
+
+<!-- ═══════════════════════════ OVERVIEW ═══════════════════════════ -->
+<div class="section active" id="overview">
+  <h2><span class="tag">// 01</span>Overview &amp; Problem Definition</h2>
+
+  <div class="box accent">
+    <strong>The Heavy Hitters Problem:</strong><br>
+    Given a stream of <em>n</em> elements from a universe <em>U</em>, find all elements that appear more than <em>n/k</em> times, using <strong>sub-linear memory</strong>. The parameter <em>k</em> controls the frequency threshold.
+  </div>
+
+  <h3>Motivation</h3>
+  <p>Real-world data streams are unbounded — storing every element is infeasible. Yet many applications need to know which items dominate the stream: network routers detecting traffic floods, databases identifying hot query patterns, recommendation systems finding trending items. The Misra-Gries algorithm (1982) solves this with <strong>O(k) space</strong>.</p>
+
+  <div class="box info">
+    <strong>Formal Definition:</strong><br>
+    Let σ = ⟨a₁, a₂, …, aₙ⟩ be a data stream. For any threshold φ ∈ (0,1), element e is a <em>φ-heavy hitter</em> if its frequency f(e) ≥ φ·n. Setting k = 1/φ, we want all elements with frequency &gt; n/k.
+  </div>
+
+  <h3>Key Properties</h3>
+  <table>
+    <thead><tr><th>Property</th><th>Value</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Space complexity</td><td><span class="good">O(k)</span></td><td>k−1 counters maximum</td></tr>
+      <tr><td>Time per element</td><td><span class="good">O(1) amortized</span></td><td>Hash map + occasional sweep</td></tr>
+      <tr><td>False negatives</td><td><span class="good">Zero</span></td><td>All heavy hitters are always reported</td></tr>
+      <tr><td>False positives</td><td><span class="ok">Possible</span></td><td>Count bounded by n/k error</td></tr>
+      <tr><td>Count error guarantee</td><td><span class="ok">≤ n/k</span></td><td>Additive approximation</td></tr>
+      <tr><td>Single pass</td><td><span class="good">Yes</span></td><td>Streaming — no re-reads</td></tr>
+      <tr><td>Deterministic</td><td><span class="good">Yes</span></td><td>No randomness required</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Intuition</h3>
+  <div class="steps-list">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Maintain a small "candidate" table</div>
+        <div class="step-desc">Keep at most k−1 (element, count) pairs. Elements not in the table are implicitly at count 0.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Increment on match</div>
+        <div class="step-desc">If the incoming element already has a counter, increment it. Simple O(1) hash lookup.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Insert new element if table has room</div>
+        <div class="step-desc">If the table has fewer than k−1 entries, add the element with count 1.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Decrement-and-evict when full</div>
+        <div class="step-desc">If the table is full and the element is new: decrement ALL existing counters by 1 and remove any that hit zero. <em>This is the key step</em> — it eliminates groups of k distinct elements at once.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">Report survivors</div>
+        <div class="step-desc">After processing the full stream, elements remaining in the table are the heavy hitter candidates.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Historical Note</h3>
+  <p>Misra and Gries published "Finding Repeated Elements" in Science of Computer Programming, 1982. The same algorithm was independently discovered by Boyer &amp; Moore (1980) for the majority-element problem (k=2), by Demaine et al. as the "Frequent" algorithm (2002), and by Karp, Shenker &amp; Papadimitriou in a different formulation. The k=2 case — finding the majority element — is often taught first.</p>
+</div>
+
+<!-- ═══════════════════════════ ALGORITHM ═══════════════════════════ -->
+<div class="section" id="algorithm">
+  <h2><span class="tag">// 02</span>Algorithm Specification</h2>
+
+  <h3>Pseudocode</h3>
+<pre><span class="cm">/**
+ * Misra-Gries Heavy Hitters
+ *
+ * Input:  Stream σ of n elements, parameter k ≥ 2
+ * Output: Set of heavy hitter candidates
+ *         (guaranteed: all elements with freq > n/k are included)
+ * Space:  O(k) — at most k-1 counters
+ */</span>
+
+<span class="fn">INIT</span>(k):
+  <span class="var">counters</span> ← <span class="kw">empty</span> HashMap   <span class="cm">// {element → count}</span>
+
+<span class="fn">PROCESS</span>(element e):
+  <span class="kw">if</span> e ∈ <span class="var">counters</span>:
+    <span class="var">counters</span>[e] ← <span class="var">counters</span>[e] + <span class="num">1</span>       <span class="cm">// increment</span>
+
+  <span class="kw">else if</span> |<span class="var">counters</span>| &lt; k - <span class="num">1</span>:
+    <span class="var">counters</span>[e] ← <span class="num">1</span>                      <span class="cm">// insert new entry</span>
+
+  <span class="kw">else</span>:
+    <span class="cm">// Table full, new element → decrement all</span>
+    <span class="kw">for each</span> (item, cnt) <span class="kw">in</span> <span class="var">counters</span>:
+      <span class="var">counters</span>[item] ← cnt - <span class="num">1</span>
+    <span class="var">counters</span>.<span class="fn">remove_zeros</span>()              <span class="cm">// evict zeroed entries</span>
+
+<span class="fn">OUTPUT</span>():
+  <span class="kw">return</span> keys(<span class="var">counters</span>)                 <span class="cm">// candidate set</span>
+
+<span class="cm">// Optional: second pass to compute exact counts for candidates</span>
+<span class="fn">VERIFY</span>(candidates, stream):
+  exact ← {e: 0 <span class="kw">for</span> e <span class="kw">in</span> candidates}
+  <span class="kw">for each</span> element e <span class="kw">in</span> stream:
+    <span class="kw">if</span> e ∈ exact: exact[e] += <span class="num">1</span>
+  <span class="kw">return</span> {e: c <span class="kw">for</span> e,c <span class="kw">in</span> exact <span class="kw">if</span> c &gt; n/k}
+</pre>
+
+  <h3>Implementation (Python)</h3>
+<pre><span class="kw">class</span> <span class="fn">MisraGries</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, k: <span class="var">int</span>):
+        <span class="cm">"""k controls threshold: heavy hitters have freq > n/k"""</span>
+        <span class="kw">assert</span> k >= <span class="num">2</span>, <span class="str">"k must be at least 2"</span>
+        self.k = k
+        self.counters: dict = {}
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, element) -> <span class="var">None</span>:
+        <span class="kw">if</span> element <span class="kw">in</span> self.counters:
+            self.counters[element] += <span class="num">1</span>
+
+        <span class="kw">elif</span> len(self.counters) < self.k - <span class="num">1</span>:
+            self.counters[element] = <span class="num">1</span>
+
+        <span class="kw">else</span>:
+            <span class="cm"># Decrement all, remove zeros</span>
+            to_delete = []
+            <span class="kw">for</span> key <span class="kw">in</span> self.counters:
+                self.counters[key] -= <span class="num">1</span>
+                <span class="kw">if</span> self.counters[key] == <span class="num">0</span>:
+                    to_delete.append(key)
+            <span class="kw">for</span> key <span class="kw">in</span> to_delete:
+                <span class="kw">del</span> self.counters[key]
+            <span class="cm"># Note: incoming element is NOT added during decrement step</span>
+
+    <span class="kw">def</span> <span class="fn">candidates</span>(self) -> <span class="var">set</span>:
+        <span class="kw">return</span> set(self.counters.keys())
+
+    <span class="kw">def</span> <span class="fn">estimate</span>(self, element) -> <span class="var">int</span>:
+        <span class="kw">return</span> self.counters.get(element, <span class="num">0</span>)
+</pre>
+
+  <h3>Efficient Implementation Note</h3>
+  <div class="box warn">
+    <strong>Batch Decrement Optimization:</strong><br>
+    Instead of physically decrementing every counter one-by-one, maintain a global <em>offset</em> variable. When a decrement-all event occurs, increment the offset. Store counters as (nominal_value + offset). This makes decrement O(1) instead of O(k). Only subtract the offset when reading a counter value.
+  </div>
+
+<pre><span class="kw">class</span> <span class="fn">MisraGriesOptimized</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, k):
+        self.k = k
+        self.counters = {}   <span class="cm"># stores raw values</span>
+        self.delta = <span class="num">0</span>      <span class="cm"># global offset subtracted on read</span>
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, e):
+        <span class="kw">if</span> e <span class="kw">in</span> self.counters:
+            self.counters[e] += <span class="num">1</span>
+        <span class="kw">elif</span> len(self.counters) < self.k - <span class="num">1</span>:
+            self.counters[e] = self.delta + <span class="num">1</span>   <span class="cm"># store raw</span>
+        <span class="kw">else</span>:
+            self.delta += <span class="num">1</span>                      <span class="cm"># O(1) global decrement</span>
+            self.counters = {
+                k: v <span class="kw">for</span> k, v <span class="kw">in</span> self.counters.items()
+                <span class="kw">if</span> v > self.delta                  <span class="cm"># still positive</span>
+            }
+
+    <span class="kw">def</span> <span class="fn">count</span>(self, e):
+        <span class="kw">return</span> max(<span class="num">0</span>, self.counters.get(e, <span class="num">0</span>) - self.delta)
+</pre>
+
+  <h3>Algorithm Phases Summary</h3>
+  <table>
+    <thead><tr><th>Case</th><th>Condition</th><th>Action</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>A — Hit</td><td>Element in counters</td><td>Increment counter</td><td>O(1)</td></tr>
+      <tr><td>B — Insert</td><td>New element, |counters| &lt; k−1</td><td>Add with count 1</td><td>O(1)</td></tr>
+      <tr><td>C — Decrement</td><td>New element, table full</td><td>Decrement all, remove zeros</td><td>O(k) naive / O(1) optimized</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════ SIMULATOR ═══════════════════════════ -->
+<div class="section" id="simulate">
+  <h2><span class="tag">// 03</span>Interactive Step-by-Step Simulator</h2>
+
+  <div class="anim-panel">
+    <div class="anim-panel-header">
+      <div>
+        <div class="title">Configuration</div>
+        <div class="subtitle">Set parameters then click RUN or STEP through manually</div>
+      </div>
+      <div id="phase-label"><span class="phase-label phase-idle">IDLE</span></div>
+    </div>
+    <div class="anim-body">
+      <div class="param-row">
+        <div class="param-group">
+          <label>k (threshold: freq &gt; n/k)</label>
+          <input type="number" id="param-k" value="3" min="2" max="10">
+        </div>
+        <div class="param-group">
+          <label>Stream (space or comma separated)</label>
+          <input type="text" id="param-stream" value="a b a c a b d a b a c e a" style="width:300px">
+        </div>
+        <div class="param-group">
+          <label>Preset</label>
+          <select id="param-preset" onchange="applyPreset()">
+            <option value="">Custom</option>
+            <option value="majority">Majority element (Boyer-Moore)</option>
+            <option value="uniform">Uniform distribution</option>
+            <option value="skewed">Skewed / Zipf-like</option>
+            <option value="adversarial">Adversarial (max evictions)</option>
+            <option value="two_heavy">Two heavy hitters</option>
+            <option value="none">No heavy hitters</option>
+          </select>
+        </div>
+      </div>
+      <div class="speed-row">
+        <span>Speed:</span>
+        <input type="range" id="speed-slider" min="100" max="2000" value="700" step="100">
+        <span id="speed-label">700ms/step</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="anim-panel">
+    <div class="anim-panel-header">
+      <div class="title">Stream</div>
+      <div class="subtitle">Current element highlighted in green</div>
+    </div>
+    <div class="anim-body">
+      <div id="stream-display" class="stream-display">
+        <span style="color:var(--text-dim);font-size:12px">Configure and press RUN to begin</span>
+      </div>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="anim-panel">
+    <div class="anim-panel-header">
+      <div class="title">Counter Table</div>
+      <div class="subtitle" id="counter-status">0 / k−1 slots used</div>
+    </div>
+    <div class="anim-body">
+      <div id="counter-table" class="counter-table">
+        <span style="color:var(--text-dim);font-size:12px">Empty</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="anim-panel">
+    <div class="anim-panel-header">
+      <div class="title">Step Log</div>
+    </div>
+    <div class="anim-body" style="padding-top:12px;">
+      <div id="log-panel" class="log-panel">—</div>
+      <div class="step-info">
+        <div class="step-badge"><span class="sbl">Step: </span><span class="sbv" id="step-num">—</span></div>
+        <div class="step-badge"><span class="sbl">Element: </span><span class="sbv" id="step-elem">—</span></div>
+        <div class="step-badge"><span class="sbl">Action: </span><span class="sbv" id="step-action">—</span></div>
+        <div class="step-badge"><span class="sbl">Table size: </span><span class="sbv" id="step-size">—</span></div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="btn-run" onclick="simRun()">▶ RUN</button>
+        <button class="btn" id="btn-step" onclick="simStep()" disabled>STEP →</button>
+        <button class="btn" id="btn-pause" onclick="simPause()" disabled>⏸ PAUSE</button>
+        <button class="btn" id="btn-reset" onclick="simReset()">↺ RESET</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="anim-panel" id="result-panel" style="display:none">
+    <div class="anim-panel-header">
+      <div class="title" style="color:var(--accent)">✓ Results</div>
+    </div>
+    <div class="anim-body" id="result-body"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ ERROR ANALYSIS ═══════════════════════════ -->
+<div class="section" id="errors">
+  <h2><span class="tag">// 04</span>Error Guarantees &amp; Analysis</h2>
+
+  <h3>The Guarantee</h3>
+  <div class="box accent">
+    For every element <em>e</em>, let f̂(e) be the estimated count (counter value) and f(e) be the true count. After processing <em>n</em> elements with parameter <em>k</em>:<br><br>
+    <strong>f(e) − n/k  ≤  f̂(e)  ≤  f(e)</strong><br><br>
+    The estimate is a <em>lower bound</em> on the true count, with additive error at most n/k.
+  </div>
+
+  <div class="formula">
+    f(e) − ⌊n/k⌋  ≤  counters[e]  ≤  f(e)
+    <span class="note">where n = stream length, k = parameter. Elements not in counters have an implicit count of 0.</span>
+  </div>
+
+  <h3>Consequence: No False Negatives</h3>
+  <div class="box info">
+    If f(e) &gt; n/k, then counters[e] &gt; 0 (element must be in the table). Therefore every true heavy hitter is always a candidate. <strong>No heavy hitters are ever missed.</strong>
+  </div>
+
+  <h3>False Positive Bound</h3>
+  <p>The table contains at most k−1 elements. So there are at most k−1 candidates reported. True heavy hitters (frequency &gt; n/k) number at most k−1 (since their frequencies sum ≤ n). Thus all reported candidates are either true heavy hitters or have frequency in the range <em>(n/k − n/k, n/k] = (0, n/k]</em>.</p>
+
+  <h3>Interactive Error Visualizer</h3>
+  <div class="anim-panel">
+    <div class="anim-panel-header">
+      <div class="title">Error Bound Visualization</div>
+      <div class="subtitle">True vs estimated frequencies</div>
+    </div>
+    <div class="anim-body">
+      <div class="param-row">
+        <div class="param-group">
+          <label>n (stream length)</label>
+          <input type="number" id="err-n" value="100" min="10" max="10000" onchange="updateErrorViz()">
+        </div>
+        <div class="param-group">
+          <label>k</label>
+          <input type="number" id="err-k" value="5" min="2" max="20" onchange="updateErrorViz()">
+        </div>
+      </div>
+      <div id="error-viz"></div>
+    </div>
+  </div>
+
+  <h3>Understanding the Error</h3>
+  <table>
+    <thead><tr><th>Scenario</th><th>Effect on Error</th></tr></thead>
+    <tbody>
+      <tr><td>Larger k</td><td>More candidates tracked, smaller error bound n/k, but more memory</td></tr>
+      <tr><td>Smaller k</td><td>Fewer candidates, larger error bound, faster evictions</td></tr>
+      <tr><td>Uniform stream</td><td>Lots of evictions, underestimates are large, but no element is heavy</td></tr>
+      <tr><td>Skewed stream</td><td>Top elements survive many rounds; underestimate is small relative to true count</td></tr>
+      <tr><td>Worst-case</td><td>Adversary alternates k distinct groups → maximum evictions, max undercount</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Why Counters Can Only Undercount</h3>
+  <div class="proof-box">
+    <div class="proof-title">Claim: f̂(e) ≤ f(e)</div>
+    A counter for e is incremented exactly once per occurrence of e in the stream. It is decremented only during a decrement-all event, which happens when e is NOT the current element. So the counter can never exceed the true count. ∎
+  </div>
+</div>
+
+<!-- ═══════════════════════════ PROOF ═══════════════════════════ -->
+<div class="section" id="proof">
+  <h2><span class="tag">// 05</span>Correctness Proof</h2>
+
+  <h3>Theorem (Misra-Gries, 1982)</h3>
+  <div class="box purple">
+    After processing a stream of n elements with parameter k, every element with true frequency &gt; n/k appears in the counter table. Moreover, for every element in the table with counter value c̃, its true frequency f satisfies:<br><br>
+    f ≥ c̃  &nbsp;&nbsp;and&nbsp;&nbsp;  f ≤ c̃ + n/k
+  </div>
+
+  <h3>Proof of No False Negatives</h3>
+  <div class="proof-box">
+    <div class="proof-title">Key Lemma — Decrement Count Bound</div>
+    Let D = total number of decrement-all events during the processing of n elements. Each decrement-all event accounts for exactly k elements: the k−1 counters that are decremented, plus the 1 new element that triggered the event. Since each element is consumed at most once, total elements processed ≥ k · D. Therefore D ≤ n/k.
+  </div>
+
+  <div class="proof-box">
+    <div class="proof-title">Proof: Every heavy hitter survives</div>
+    Let e be an element with f(e) &gt; n/k. Counter for e is incremented f(e) times and decremented at most D ≤ n/k times. So the final counter value c̃(e) ≥ f(e) − D ≥ f(e) − n/k &gt; 0. Since c̃(e) &gt; 0, element e is in the table when OUTPUT() is called. ∎
+  </div>
+
+  <div class="proof-box">
+    <div class="proof-title">Proof: Counter does not exceed true count</div>
+    Counter for e is incremented only when e appears in the stream. It is decremented only during events triggered by a different element. Therefore the counter can be incremented at most f(e) times. Hence c̃(e) ≤ f(e). ∎
+  </div>
+
+  <div class="proof-box">
+    <div class="proof-title">Proof: At most k−1 elements in table</div>
+    Each decrement-all event removes at least one element (the one whose counter hits zero from above 0, or possibly several). After each such event, the table has at most k−2 entries (since all were decremented including those that evicted). Before a decrement event, the table must have had exactly k−1 entries (otherwise we would have inserted). So the table size is bounded by k−1 at all times. ∎
+  </div>
+
+  <h3>Space Complexity Proof</h3>
+  <div class="box info">
+    The table holds at most k−1 entries. Each entry stores an element (universe label) and a counter (integer ≤ n). With a hash map, this requires O(k) memory words. ∎
+  </div>
+
+  <h3>Amortized Time Analysis</h3>
+  <div class="proof-box">
+    <div class="proof-title">Total work across all n elements</div>
+    Each element either: (A) increments one counter in O(1), (B) inserts in O(1), or (C) triggers a decrement-all. Case C costs O(k) but also consumes k elements (k−1 counters + 1 triggering element). Total cost of all Case C events ≤ (n/k) · O(k) = O(n). Adding Cases A and B: total cost = O(n). Per-element amortized = O(1). ∎
+  </div>
+
+  <h3>Tight Example</h3>
+  <p>The bound n/k error is tight. Consider the stream:</p>
+  <div class="formula">
+    [a, b, c, a, b, c, a, b, c, …]  &nbsp;&nbsp;(k=3, groups of 3 distinct elements)
+  </div>
+  <p>With k=3, we keep k−1=2 counters. The 3rd element always triggers a decrement-all. If this repeats n/3 times, the surviving element has counter 0 and true count n/3. Error = n/3 = n/k exactly.</p>
+</div>
+
+<!-- ═══════════════════════════ EXTENSIONS ═══════════════════════════ -->
+<div class="section" id="extensions">
+  <h2><span class="tag">// 06</span>Extensions &amp; Variants</h2>
+
+  <h3>1. Merge / Parallel Processing</h3>
+  <div class="box accent">
+    <strong>Two Misra-Gries summaries can be merged</strong> to produce a valid summary of the union stream. This enables distributed/parallel computation.
+  </div>
+<pre><span class="fn">MERGE</span>(A: MisraGries, B: MisraGries) → MisraGries:
+  <span class="cm">// Step 1: Combine by summing shared counters</span>
+  combined = {}
+  <span class="kw">for</span> (e, c) <span class="kw">in</span> A.counters:
+    combined[e] = combined.get(e, <span class="num">0</span>) + c
+  <span class="kw">for</span> (e, c) <span class="kw">in</span> B.counters:
+    combined[e] = combined.get(e, <span class="num">0</span>) + c
+
+  <span class="cm">// Step 2: Reduce to k-1 entries by finding (k+1)-th largest</span>
+  <span class="kw">if</span> |combined| <= k - <span class="num">1</span>:
+    <span class="kw">return</span> combined                    <span class="cm">// already small enough</span>
+
+  sorted_vals = sort(combined.values(), descending=True)
+  threshold = sorted_vals[k - <span class="num">1</span>]       <span class="cm">// (k-1)-th largest value</span>
+
+  <span class="kw">return</span> {e: c - threshold
+          <span class="kw">for</span> (e, c) <span class="kw">in</span> combined.items()
+          <span class="kw">if</span> c - threshold > <span class="num">0</span>}
+</pre>
+  <p><strong>Merge Error:</strong> The merged summary has error bound n_A/k + n_B/k = (n_A + n_B)/k, as expected for the combined stream of length n_A + n_B.</p>
+
+  <div class="anim-panel">
+    <div class="anim-panel-header">
+      <div class="title">Merge Visualizer</div>
+      <div class="subtitle">Simulate merging two Misra-Gries summaries</div>
+    </div>
+    <div class="anim-body">
+      <div class="param-row">
+        <div class="param-group">
+          <label>k</label>
+          <input type="number" id="merge-k" value="3" min="2" max="8">
+        </div>
+        <div class="param-group">
+          <label>Stream A</label>
+          <input type="text" id="merge-a" value="a a a b b c" style="width:200px">
+        </div>
+        <div class="param-group">
+          <label>Stream B</label>
+          <input type="text" id="merge-b" value="a a d d d b" style="width:200px">
+        </div>
+        <div class="param-group" style="justify-content:flex-end;padding-top:18px;">
+          <button class="btn primary" onclick="runMerge()">MERGE</button>
+        </div>
+      </div>
+      <div id="merge-result"></div>
+    </div>
+  </div>
+
+  <hr>
+
+  <h3>2. Weighted / Frequency Streams</h3>
+  <div class="box info">
+    If each element arrives with a weight w_i (e.g., packet sizes in bytes), extend Misra-Gries by adding w_i to the counter instead of 1, and decrement by min(existing_counts) during a full event. The error bound becomes W/k where W = total weight.
+  </div>
+
+  <hr>
+
+  <h3>3. Space-Saving Algorithm (Metwally et al., 2005)</h3>
+  <p>A refinement where, when the table is full and a new element arrives, the new element <em>replaces</em> the element with the smallest counter and inherits that counter value (instead of decrementing all). This gives tighter estimates and wastes no space.</p>
+<pre><span class="cm">// Space-Saving variant of PROCESS(e):</span>
+<span class="kw">if</span> e ∈ counters:
+  counters[e] += <span class="num">1</span>
+<span class="kw">elif</span> |counters| < k - <span class="num">1</span>:
+  counters[e] = <span class="num">1</span>
+<span class="kw">else</span>:
+  min_key = argmin(counters.values())
+  min_val = counters[min_key]
+  <span class="kw">del</span> counters[min_key]
+  counters[e] = min_val + <span class="num">1</span>   <span class="cm">// inherits +1</span>
+</pre>
+
+  <hr>
+
+  <h3>4. Frequent Directions (Matrix Analog)</h3>
+  <p>The "Frequent Directions" algorithm (Ghashami et al., 2016) is the matrix analog of Misra-Gries. Instead of decrementing scalar counters, it applies SVD and shrinks singular values — yielding a low-rank sketch with additive spectral error.</p>
+
+  <hr>
+
+  <h3>5. Count-Min Sketch (Alternative)</h3>
+  <p>Count-Min Sketch uses hash functions and a 2D array to answer point queries in O(1) with multiplicative error, but requires randomness. Misra-Gries is deterministic and exact (within additive error) but limited to the top-k candidates.</p>
+
+  <table>
+    <thead><tr><th>Feature</th><th>Misra-Gries</th><th>Count-Min Sketch</th></tr></thead>
+    <tbody>
+      <tr><td>Randomized?</td><td><span class="good">No</span></td><td><span class="ok">Yes</span></td></tr>
+      <tr><td>Error type</td><td>Additive (n/k)</td><td>Multiplicative (ε·n)</td></tr>
+      <tr><td>Space</td><td>O(k)</td><td>O(1/ε · log(1/δ))</td></tr>
+      <tr><td>Point queries</td><td>Only candidates</td><td>All elements</td></tr>
+      <tr><td>Undercount only?</td><td><span class="good">Yes</span></td><td><span class="ok">Overcount</span></td></tr>
+      <tr><td>Merge-able?</td><td><span class="good">Yes</span></td><td><span class="good">Yes</span></td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h3>6. Sliding Window Variant</h3>
+  <p>For time-decaying streams, elements are weighted by a decay factor λ^t. Modified Misra-Gries periodically scales all counters by λ. Heavy hitters are those with weighted frequency above the threshold.</p>
+
+  <hr>
+
+  <h3>7. Second Pass Verification</h3>
+  <div class="box accent">
+    A common two-pass pipeline: Pass 1 → Misra-Gries to get candidates. Pass 2 → scan stream once more, counting only candidates exactly. Then filter by f(e) &gt; n/k. This gives exact answers using only O(k) memory between passes.
+  </div>
+</div>
+
+<!-- ═══════════════════════════ EDGE CASES ═══════════════════════════ -->
+<div class="section" id="edgecases">
+  <h2><span class="tag">// 07</span>Edge Cases &amp; Corner Cases</h2>
+
+  <div class="edge-grid">
+    <div class="edge-card">
+      <h4>k = 2 (Majority Element / Boyer-Moore)</h4>
+      <p>Keeps only 1 counter. The algorithm reduces to Boyer-Moore voting. The sole candidate (if it survives) is the majority element — only one exists with freq &gt; n/2. If no majority exists, the single survivor may be a false positive.<br><br><code>a b a b c → [c:1] → no majority</code></p>
+    </div>
+    <div class="edge-card">
+      <h4>No Heavy Hitters Exist</h4>
+      <p>Uniform stream: all n/k elements appear exactly k times. Every decrement event evicts all entries. The table may end up empty or with survivors that are false positives. The guarantee still holds: any survivor has count ≤ n/k (not heavy). No incorrect heavy hitter is reported.<br><br><code>Output: ∅ or false positives (to be verified)</code></p>
+    </div>
+    <div class="edge-card">
+      <h4>All Elements Identical</h4>
+      <p>Stream of n copies of 'a'. The table immediately gets entry {a:1} and is never full (k−1 ≥ 1). Counter increments to n. No evictions occur. 'a' is correctly identified as the only candidate.<br><br><code>counters = {a: n}</code></p>
+    </div>
+    <div class="edge-card">
+      <h4>Exactly k Heavy Hitters</h4>
+      <p>k elements each appear n/k times. Their frequencies sum to n, so they use all occurrences. Misra-Gries can keep at most k−1 counters, so one heavy hitter may be evicted if the algorithm sees elements in an adversarial order. Each true heavy hitter has freq = n/k (not strictly greater), so the guarantee doesn't apply — all could be evicted!</p>
+    </div>
+    <div class="edge-card">
+      <h4>Single-Element Stream (n = 1)</h4>
+      <p>One element arrives, table is empty, so it's inserted with count 1. Candidate set = {that element}. Heavy hitter threshold = 1/k &lt; 1, so technically any element appearing once with n=1 is heavy. Correct behavior.</p>
+    </div>
+    <div class="edge-card">
+      <h4>Adversarial Input (Maximum Evictions)</h4>
+      <p>Input: k groups of k distinct elements, cycled. Every k-th element triggers decrement-all. Surviving elements have their counts maximally underestimated. Error = n/k (tight bound). The algorithm is still correct but estimates are least useful here.<br><br><code>a b c | a b c | a b c | … (k=3)</code></p>
+    </div>
+    <div class="edge-card">
+      <h4>k = 1 (Degenerate)</h4>
+      <p>Threshold would be &gt; n/1 = n, which no element can satisfy. The algorithm keeps 0 counters (k−1 = 0). Every element triggers a no-op. No candidates are ever reported. Correctly: no element has frequency &gt; n. Guard: assert k ≥ 2 in implementation.</p>
+    </div>
+    <div class="edge-card">
+      <h4>Very Large Universe</h4>
+      <p>Elements are 64-bit hashes, domain size |U| = 2⁶⁴. Misra-Gries is unaffected — it only tracks the elements it has actually seen. Memory is O(k) regardless of universe size. The hash map naturally handles sparse, large-domain inputs.</p>
+    </div>
+    <div class="edge-card">
+      <h4>Decrement Evicts Multiple Elements</h4>
+      <p>During a decrement-all, multiple elements can simultaneously hit counter 0 and be evicted. Example: all k−1 counters are at 1; new element arrives; all decrement to 0; all k−1 are evicted in one step. The incoming element is then NOT added. Table is now empty.</p>
+    </div>
+    <div class="edge-card">
+      <h4>Stream Length Unknown</h4>
+      <p>Misra-Gries works without knowing n in advance. The output is the candidate set. The error bound n/k can only be computed post-hoc once n is known (or estimated). For online threshold queries, maintain a running count of n alongside the algorithm.</p>
+    </div>
+    <div class="edge-card">
+      <h4>Merging Summaries of Unequal Size</h4>
+      <p>When merging two Misra-Gries summaries for streams of lengths n₁ and n₂, the combined error bound is n₁/k + n₂/k = (n₁+n₂)/k. The merge procedure itself must use the same k parameter for the result to be valid. Using different k values is undefined.</p>
+    </div>
+    <div class="edge-card">
+      <h4>Counter Overflow</h4>
+      <p>For very long streams (n &gt; INT_MAX), use 64-bit or arbitrary-precision counters. With optimized offset representation, counters store raw values which grow at most as fast as n. For n = 10¹² elements, use 64-bit integers (max ~1.8 × 10¹⁸).</p>
+    </div>
+  </div>
+
+  <h3>Edge Case Summary Table</h3>
+  <table>
+    <thead><tr><th>Scenario</th><th>Table behavior</th><th>Output correctness</th></tr></thead>
+    <tbody>
+      <tr><td>k = 2</td><td>1 counter max</td><td><span class="good">Correct</span> (majority only)</td></tr>
+      <tr><td>No heavy hitters</td><td>Table may empty</td><td><span class="good">Correct</span> (false positives only)</td></tr>
+      <tr><td>All identical</td><td>No evictions</td><td><span class="good">Correct</span></td></tr>
+      <tr><td>Exactly k heavy</td><td>One may be lost</td><td><span class="ok">Boundary case — not strictly &gt; n/k</span></td></tr>
+      <tr><td>k = 1</td><td>0 counters</td><td><span class="ok">Degenerate — assert k ≥ 2</span></td></tr>
+      <tr><td>Adversarial</td><td>Max evictions</td><td><span class="good">Correct</span> (tight error)</td></tr>
+      <tr><td>n unknown</td><td>Works fine</td><td><span class="good">Correct</span> (compute threshold post-hoc)</td></tr>
+      <tr><td>Multi-evict step</td><td>Table empties</td><td><span class="good">Correct</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════ COMPARISON ═══════════════════════════ -->
+<div class="section" id="compare">
+  <h2><span class="tag">// 08</span>Algorithm Comparison &amp; Complexity</h2>
+
+  <h3>Complexity Summary</h3>
+  <div class="complexity-grid">
+    <div class="cg-cell">
+      <div class="cg-label">Space</div>
+      <div class="cg-val">O(k)</div>
+      <div class="cg-note">k−1 counters max</div>
+    </div>
+    <div class="cg-cell">
+      <div class="cg-label">Time / element</div>
+      <div class="cg-val">O(1)*</div>
+      <div class="cg-note">amortized with offset trick</div>
+    </div>
+    <div class="cg-cell">
+      <div class="cg-label">Decrement events</div>
+      <div class="cg-val">≤ n/k</div>
+      <div class="cg-note">total over full stream</div>
+    </div>
+    <div class="cg-cell">
+      <div class="cg-label">Error bound</div>
+      <div class="cg-val">n/k</div>
+      <div class="cg-note">additive, one-sided undercount</div>
+    </div>
+    <div class="cg-cell">
+      <div class="cg-label">False negatives</div>
+      <div class="cg-val">0</div>
+      <div class="cg-note">guaranteed</div>
+    </div>
+    <div class="cg-cell">
+      <div class="cg-label">Passes needed</div>
+      <div class="cg-val">1 (or 2)</div>
+      <div class="cg-note">2nd pass for exact counts</div>
+    </div>
+  </div>
+
+  <h3>Comparison with Other Approaches</h3>
+  <table>
+    <thead><tr><th>Algorithm</th><th>Space</th><th>Time/elem</th><th>Error</th><th>Deterministic</th><th>False neg</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Misra-Gries</strong></td>
+        <td class="good">O(k)</td>
+        <td class="good">O(1) amort.</td>
+        <td class="ok">Additive n/k</td>
+        <td class="good">Yes</td>
+        <td class="good">None</td>
+      </tr>
+      <tr>
+        <td>Exact counting</td>
+        <td class="bad">O(n)</td>
+        <td class="good">O(1)</td>
+        <td class="good">None</td>
+        <td class="good">Yes</td>
+        <td class="good">None</td>
+      </tr>
+      <tr>
+        <td>Count-Min Sketch</td>
+        <td class="good">O(1/ε · log δ)</td>
+        <td class="good">O(log δ)</td>
+        <td class="ok">Additive εn</td>
+        <td class="bad">No</td>
+        <td class="bad">Possible</td>
+      </tr>
+      <tr>
+        <td>Space-Saving</td>
+        <td class="good">O(k)</td>
+        <td class="good">O(1) amort.</td>
+        <td class="ok">Additive n/k</td>
+        <td class="good">Yes</td>
+        <td class="good">None</td>
+      </tr>
+      <tr>
+        <td>Sampling (Reservoir)</td>
+        <td class="good">O(k)</td>
+        <td class="good">O(1)</td>
+        <td class="bad">High variance</td>
+        <td class="bad">No</td>
+        <td class="bad">Possible</td>
+      </tr>
+      <tr>
+        <td>Sorted hash map</td>
+        <td class="bad">O(|U|)</td>
+        <td class="ok">O(log|U|)</td>
+        <td class="good">None</td>
+        <td class="good">Yes</td>
+        <td class="good">None</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>When to Use Misra-Gries</h3>
+  <div class="box accent">
+    <span class="chip chip-g">IDEAL</span> Single-pass streaming, deterministic guarantee needed, memory-constrained, large universe<br><br>
+    <span class="chip chip-y">OK</span> Approximate top-k when exact counts are verified with a second pass<br><br>
+    <span class="chip chip-b">AVOID</span> When all-element frequency queries needed (use Count-Min), when the stream cannot be re-read and exact counts are required (use exact hash map)
+  </div>
+
+  <h3>Practical Applications</h3>
+  <table>
+    <thead><tr><th>Domain</th><th>Application</th><th>k value</th></tr></thead>
+    <tbody>
+      <tr><td>Network monitoring</td><td>Detect DDoS source IPs (elephant flows)</td><td>32–256</td></tr>
+      <tr><td>Databases</td><td>Identify hot query patterns for caching</td><td>10–100</td></tr>
+      <tr><td>Search engines</td><td>Trending queries in real-time</td><td>100–1000</td></tr>
+      <tr><td>Social media</td><td>Trending hashtags / topics</td><td>100–10000</td></tr>
+      <tr><td>Finance</td><td>Most traded securities / alerts</td><td>10–50</td></tr>
+      <tr><td>Log analysis</td><td>Most frequent error codes</td><td>10–100</td></tr>
+      <tr><td>Voting / elections</td><td>Majority candidate detection</td><td>2</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════ */
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'errors') updateErrorViz();
+}
+
+/* ══════════════════════════════════════════════════
+   SIMULATOR STATE
+══════════════════════════════════════════════════ */
+let simState = {
+  stream: [],
+  k: 3,
+  counters: {},
+  step: 0,
+  running: false,
+  timer: null,
+  done: false
+};
+
+function parseStream(s) {
+  return s.trim().split(/[\s,]+/).filter(x => x.length > 0);
+}
+
+function applyPreset() {
+  const p = document.getElementById('param-preset').value;
+  const presets = {
+    majority:    { k: 2, s: 'a b a a b c a a a b a' },
+    uniform:     { k: 4, s: 'a b c d a b c d a b c d a b c d' },
+    skewed:      { k: 4, s: 'a a a a a a b b b c c d e f a a a' },
+    adversarial: { k: 3, s: 'a b c a b c a b c a b c a b c a' },
+    two_heavy:   { k: 3, s: 'a b a b a b c a b a b a b d a b' },
+    none:        { k: 5, s: 'a b c d e f g h i j a b c d e' },
+  };
+  if (p && presets[p]) {
+    document.getElementById('param-k').value = presets[p].k;
+    document.getElementById('param-stream').value = presets[p].s;
+  }
+}
+
+document.getElementById('speed-slider').addEventListener('input', function() {
+  document.getElementById('speed-label').textContent = this.value + 'ms/step';
+});
+
+function simReset() {
+  clearInterval(simState.timer);
+  simState = { stream: [], k: 3, counters: {}, step: 0, running: false, timer: null, done: false };
+  document.getElementById('stream-display').innerHTML = '<span style="color:var(--text-dim);font-size:12px">Configure and press RUN to begin</span>';
+  document.getElementById('counter-table').innerHTML = '<span style="color:var(--text-dim);font-size:12px">Empty</span>';
+  document.getElementById('counter-status').textContent = '0 / k−1 slots used';
+  document.getElementById('log-panel').innerHTML = '—';
+  document.getElementById('step-num').textContent = '—';
+  document.getElementById('step-elem').textContent = '—';
+  document.getElementById('step-action').textContent = '—';
+  document.getElementById('step-size').textContent = '—';
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('result-panel').style.display = 'none';
+  document.getElementById('phase-label').innerHTML = '<span class="phase-label phase-idle">IDLE</span>';
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-step').disabled = true;
+  document.getElementById('btn-pause').disabled = true;
+}
+
+function simInit() {
+  const k = parseInt(document.getElementById('param-k').value);
+  if (k < 2) { alert('k must be at least 2'); return false; }
+  const stream = parseStream(document.getElementById('param-stream').value);
+  if (stream.length === 0) { alert('Stream cannot be empty'); return false; }
+  simState.k = k;
+  simState.stream = stream;
+  simState.counters = {};
+  simState.step = 0;
+  simState.done = false;
+
+  // Render stream tokens
+  const sd = document.getElementById('stream-display');
+  sd.innerHTML = stream.map((e, i) =>
+    `<span class="stream-token" id="tok-${i}">${e}</span>`
+  ).join('');
+
+  renderCounters('', '');
+  return true;
+}
+
+function simRun() {
+  if (!simInit()) return;
+  simState.running = true;
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-step').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-reset').disabled = false;
+  scheduleNext();
+}
+
+function scheduleNext() {
+  const speed = parseInt(document.getElementById('speed-slider').value);
+  simState.timer = setTimeout(() => {
+    const cont = doStep();
+    if (cont && simState.running) scheduleNext();
+  }, speed);
+}
+
+function simPause() {
+  simState.running = false;
+  clearTimeout(simState.timer);
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-step').disabled = false;
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('phase-label').innerHTML = '<span class="phase-label phase-idle">PAUSED</span>';
+}
+
+function simStep() {
+  if (simState.step === 0 && Object.keys(simState.counters).length === 0 &&
+      document.getElementById('stream-display').querySelector('.stream-token') === null) {
+    if (!simInit()) return;
+  }
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-pause').disabled = true;
+  const cont = doStep();
+  if (!cont) {
+    document.getElementById('btn-step').disabled = true;
+  }
+}
+
+function doStep() {
+  if (simState.step >= simState.stream.length) {
+    finishSim();
+    return false;
+  }
+  const i = simState.step;
+  const e = simState.stream[i];
+  const k = simState.k;
+  const maxSlots = k - 1;
+
+  // Highlight current token
+  document.querySelectorAll('.stream-token').forEach(t => t.classList.remove('current'));
+  const tok = document.getElementById(`tok-${i}`);
+  if (tok) tok.classList.add('current');
+
+  // Update progress
+  document.getElementById('progress-bar').style.width = ((i+1)/simState.stream.length*100) + '%';
+
+  let action, logHTML, highlight = null, newEntry = null, decrement = false;
+
+  if (simState.counters.hasOwnProperty(e)) {
+    // Case A: increment
+    simState.counters[e]++;
+    action = 'INCREMENT';
+    highlight = e;
+    logHTML = `<span class="log-accent">HIT</span> — Element <strong>"${e}"</strong> found in table. Counter: ${simState.counters[e]-1} → <strong>${simState.counters[e]}</strong>`;
+    document.getElementById('phase-label').innerHTML = '<span class="phase-label phase-process">INCREMENT</span>';
+  } else if (Object.keys(simState.counters).length < maxSlots) {
+    // Case B: insert
+    simState.counters[e] = 1;
+    action = 'INSERT';
+    newEntry = e;
+    logHTML = `<span class="log-info">INSERT</span> — Element <strong>"${e}"</strong> is new. Table has room (${Object.keys(simState.counters).length-1}/${maxSlots} before insert). Added with count 1.`;
+    document.getElementById('phase-label').innerHTML = '<span class="phase-label phase-process">INSERT</span>';
+  } else {
+    // Case C: decrement all
+    action = 'DECREMENT ALL';
+    const before = JSON.stringify(simState.counters);
+    const decremented = [];
+    const evicted = [];
+    for (const key in simState.counters) {
+      simState.counters[key]--;
+      decremented.push(key);
+      if (simState.counters[key] === 0) evicted.push(key);
+    }
+    evicted.forEach(key => delete simState.counters[key]);
+    decrement = true;
+    logHTML = `<span class="log-warn">DECREMENT</span> — Table full (${maxSlots}/${maxSlots}), element <strong>"${e}"</strong> is new. Decremented all. `;
+    if (evicted.length > 0) {
+      logHTML += `<span class="log-red">Evicted: [${evicted.map(x=>`"${x}"`).join(', ')}].</span> `;
+    }
+    logHTML += `"${e}" is <em>not</em> added.`;
+    document.getElementById('phase-label').innerHTML = '<span class="phase-label phase-decrement">DECREMENT ALL</span>';
+
+    // Mark evicted tokens
+    for (let j = 0; j <= i; j++) {
+      // Don't re-mark previously processed
+    }
+  }
+
+  // Update step info
+  document.getElementById('step-num').textContent = i + 1;
+  document.getElementById('step-elem').textContent = `"${e}"`;
+  document.getElementById('step-action').textContent = action;
+  document.getElementById('step-size').textContent = Object.keys(simState.counters).length + ' / ' + maxSlots;
+  document.getElementById('log-panel').innerHTML = logHTML;
+  document.getElementById('counter-status').textContent =
+    Object.keys(simState.counters).length + ' / ' + maxSlots + ' slots used';
+
+  // Mark token as processed
+  if (tok) {
+    tok.classList.remove('current');
+    tok.classList.add('processed');
+  }
+
+  renderCounters(highlight, newEntry, decrement);
+
+  simState.step++;
+  if (simState.step >= simState.stream.length) {
+    setTimeout(finishSim, 400);
+    return false;
+  }
+  return true;
+}
+
+function renderCounters(highlight, newEntry, decrement) {
+  const ct = document.getElementById('counter-table');
+  const counters = simState.counters;
+  const keys = Object.keys(counters);
+  if (keys.length === 0) {
+    ct.innerHTML = '<span style="color:var(--text-dim);font-size:12px">Empty — all evicted</span>';
+    return;
+  }
+  ct.innerHTML = keys.map(k => {
+    let cls = 'counter-cell';
+    if (k === highlight && k !== newEntry) cls += ' highlight';
+    if (k === newEntry) cls += ' new-entry';
+    if (decrement) cls += ' decrement';
+    return `<div class="${cls}">
+      <div class="ckey">${k}</div>
+      <div class="cval">${counters[k]}</div>
+    </div>`;
+  }).join('');
+}
+
+function finishSim() {
+  simState.done = true;
+  simState.running = false;
+  clearTimeout(simState.timer);
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-step').disabled = true;
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('phase-label').innerHTML = '<span class="phase-label phase-done">DONE</span>';
+
+  const n = simState.stream.length;
+  const k = simState.k;
+  const threshold = n / k;
+  const candidates = Object.keys(simState.counters);
+
+  // Compute true counts
+  const trueCounts = {};
+  simState.stream.forEach(e => { trueCounts[e] = (trueCounts[e]||0) + 1; });
+  const heavyHitters = Object.keys(trueCounts).filter(e => trueCounts[e] > threshold);
+
+  let html = `<strong style="color:var(--accent)">Processing complete.</strong><br><br>`;
+  html += `Stream length <strong>n = ${n}</strong>, parameter <strong>k = ${k}</strong>, threshold = <strong>n/k = ${threshold.toFixed(2)}</strong><br><br>`;
+
+  if (candidates.length === 0) {
+    html += `<span style="color:var(--text-dim)">No candidates in table.</span><br>`;
+  } else {
+    html += `<strong>Candidate set (table survivors):</strong><br>`;
+    html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;">`;
+    candidates.forEach(c => {
+      const tc = trueCounts[c] || 0;
+      const est = simState.counters[c];
+      const isHH = tc > threshold;
+      html += `<div style="background:var(--bg3);border:1px solid ${isHH ? 'var(--accent)' : 'var(--border)'};border-radius:4px;padding:10px 16px;min-width:100px;text-align:center;">
+        <div style="font-size:18px;color:var(--text-hi)">${c}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px">est: ${est}</div>
+        <div style="font-size:11px;color:var(--text-dim)">true: ${tc}</div>
+        <div style="font-size:10px;margin-top:4px;color:${isHH?'var(--accent)':'var(--accent3)'}">${isHH?'✓ HEAVY HITTER':'false positive?'}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `<strong>True heavy hitters (freq &gt; ${threshold.toFixed(2)}):</strong> `;
+  html += heavyHitters.length > 0
+    ? heavyHitters.map(e => `<code>${e}</code> (${trueCounts[e]})`).join(', ')
+    : '<span style="color:var(--text-dim)">none</span>';
+
+  const missed = heavyHitters.filter(e => !candidates.includes(e));
+  if (missed.length > 0) {
+    html += `<br><span style="color:var(--red)">⚠ Missed (bug?): ${missed.join(', ')}</span>`;
+  } else {
+    html += `<br><span style="color:var(--accent)">✓ All true heavy hitters captured (no false negatives)</span>`;
+  }
+
+  const rp = document.getElementById('result-panel');
+  rp.style.display = 'block';
+  document.getElementById('result-body').innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════
+   ERROR VISUALIZER
+══════════════════════════════════════════════════ */
+function updateErrorViz() {
+  const n = parseInt(document.getElementById('err-n').value) || 100;
+  const k = parseInt(document.getElementById('err-k').value) || 5;
+  const errorBound = n / k;
+
+  // Simulate some frequencies
+  const items = [
+    { name: 'A', trueFreq: Math.round(n * 0.35) },
+    { name: 'B', trueFreq: Math.round(n * 0.25) },
+    { name: 'C', trueFreq: Math.round(n * 0.15) },
+    { name: 'D', trueFreq: Math.round(n * 0.10) },
+    { name: 'E', trueFreq: Math.round(n * 0.08) },
+    { name: 'F', trueFreq: Math.round(n * 0.04) },
+    { name: 'G', trueFreq: Math.round(n * 0.03) },
+  ];
+  const total = items.reduce((s, i) => s + i.trueFreq, 0);
+  // adjust last
+  items[items.length-1].trueFreq += (n - total);
+
+  const maxFreq = items[0].trueFreq;
+
+  let html = `<div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">
+    Error bound = n/k = ${n}/${k} = <strong style="color:var(--red)">${errorBound.toFixed(1)}</strong> &nbsp;|&nbsp;
+    Threshold = n/k = <strong style="color:var(--accent3)">${errorBound.toFixed(1)}</strong> (freq must exceed this to be heavy)
+  </div>`;
+  html += `<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;display:flex;gap:16px;">
+    <span><span style="display:inline-block;width:12px;height:12px;background:var(--accent2);border-radius:2px;"></span> True frequency</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:var(--accent);border-radius:2px;opacity:0.7;"></span> Estimated (true − n/k)</span>
+    <span><span style="display:inline-block;width:3px;height:12px;background:var(--red);"></span> Threshold n/k</span>
+  </div>`;
+
+  html += `<div class="bar-chart">`;
+  items.forEach(item => {
+    const trueW = (item.trueFreq / maxFreq * 100).toFixed(1);
+    const estFreq = Math.max(0, item.trueFreq - errorBound);
+    const estW = (estFreq / maxFreq * 100).toFixed(1);
+    const threshW = (errorBound / maxFreq * 100).toFixed(1);
+    const isHH = item.trueFreq > errorBound;
+    html += `<div class="bar-row">
+      <div class="bar-label" style="color:${isHH?'var(--accent)':'var(--text-dim)'}">${item.name} ${isHH?'★':''}</div>
+      <div style="position:relative;flex:1;">
+        <div class="bar-outer" style="margin-bottom:3px;">
+          <div class="bar-inner bar-actual" style="width:${trueW}%"></div>
+          <div class="bar-thresh" style="left:${threshW}%"></div>
+        </div>
+        <div class="bar-outer">
+          <div class="bar-inner bar-est" style="width:${estW}%"></div>
+          <div class="bar-thresh" style="left:${threshW}%"></div>
+        </div>
+      </div>
+      <div class="bar-count" style="font-size:11px;">
+        <div>${item.trueFreq}</div>
+        <div style="color:var(--accent);opacity:0.7">${Math.round(estFreq)}</div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  html += `<div style="font-size:12px;color:var(--text-dim);margin-top:8px;">★ = true heavy hitter (freq &gt; n/k = ${errorBound.toFixed(1)})</div>`;
+
+  document.getElementById('error-viz').innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════
+   MERGE VISUALIZER
+══════════════════════════════════════════════════ */
+function runMergeGries(stream, k) {
+  const counters = {};
+  stream.forEach(e => {
+    if (counters.hasOwnProperty(e)) {
+      counters[e]++;
+    } else if (Object.keys(counters).length < k - 1) {
+      counters[e] = 1;
+    } else {
+      const keys = Object.keys(counters);
+      keys.forEach(key => { counters[key]--; });
+      Object.keys(counters).forEach(key => { if (counters[key] <= 0) delete counters[key]; });
+    }
+  });
+  return counters;
+}
+
+function mergeCounters(A, B, k) {
+  const combined = {};
+  for (const e in A) combined[e] = (combined[e]||0) + A[e];
+  for (const e in B) combined[e] = (combined[e]||0) + B[e];
+  const vals = Object.values(combined).sort((a,b) => b-a);
+  if (vals.length <= k-1) return combined;
+  const threshold = vals[k-1] || 0;
+  const result = {};
+  for (const e in combined) {
+    if (combined[e] - threshold > 0) result[e] = combined[e] - threshold;
+  }
+  return result;
+}
+
+function runMerge() {
+  const k = parseInt(document.getElementById('merge-k').value);
+  const sA = parseStream(document.getElementById('merge-a').value);
+  const sB = parseStream(document.getElementById('merge-b').value);
+
+  const mgA = runMergeGries(sA, k);
+  const mgB = runMergeGries(sB, k);
+  const merged = mergeCounters(mgA, mgB, k);
+
+  // True counts for union
+  const combined = [...sA, ...sB];
+  const trueCounts = {};
+  combined.forEach(e => { trueCounts[e] = (trueCounts[e]||0)+1; });
+
+  function renderTable(label, obj, color, tokens, cls) {
+    const tokHtml = tokens.map(t => `<span class="merge-token ${cls}">${t}</span>`).join('');
+    const entries = Object.entries(obj);
+    const cells = entries.length > 0
+      ? entries.map(([e,c]) => `<div style="background:var(--bg3);border:1px solid ${color}30;border-radius:3px;padding:8px 12px;text-align:center;"><div style="font-size:16px;color:var(--text-hi)">${e}</div><div style="font-size:14px;color:${color}">${c}</div></div>`).join('')
+      : '<span style="color:var(--text-dim);font-size:12px">empty</span>';
+    return `<div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:${color};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">${label}</div>
+      <div class="merge-stream">${tokHtml}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${cells}</div>
+    </div>`;
+  }
+
+  let html = renderTable(`MG(A) — k=${k}`, mgA, 'var(--accent2)', sA, 's1');
+  html += renderTable(`MG(B) — k=${k}`, mgB, 'var(--accent4)', sB, 's2');
+
+  const mCells = Object.entries(merged).map(([e,c]) => {
+    const tc = trueCounts[e]||0;
+    return `<div style="background:var(--bg3);border:1px solid var(--accent)40;border-radius:3px;padding:8px 12px;text-align:center;">
+      <div style="font-size:16px;color:var(--text-hi)">${e}</div>
+      <div style="font-size:14px;color:var(--accent)">${c}</div>
+      <div style="font-size:10px;color:var(--text-dim)">true: ${tc}</div>
+    </div>`;
+  }).join('') || '<span style="color:var(--text-dim);font-size:12px">empty</span>';
+
+  html += `<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:4px;padding:14px 18px;">
+    <div style="font-size:11px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">MERGED RESULT</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">${mCells}</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:10px;">
+      n_A=${sA.length}, n_B=${sB.length}, total n=${combined.length} | Error bound ≤ n/k = ${(combined.length/k).toFixed(1)}
+    </div>
+  </div>`;
+
+  document.getElementById('merge-result').innerHTML = html;
+}
+
+// Init error viz on page load
+updateErrorViz();
+</script>
+</body>
+</html>
